@@ -103,12 +103,14 @@ LOGGING_LEVEL = $(LOGGING_PRESET_3)
 
 ## recommended for development:
 # CPPFLAGS = -g -std=c++11 $(M64) -O2 $(LOGGING_PRESET_3) -Wall -DSNAPPY=$(SNAPPY)
+# CPPFLAGS = -g -std=gnu++11 $(M64) -O2 $(LOGGING_PRESET_3) -Wall -DSNAPPY=$(SNAPPY)
 
 ## recommended for production runs:
-CPPFLAGS = -std=c++11 $(M64) -O3 $(OPENMP) $(LOGGING_LEVEL) -DNCPU=$(NCPU) -DSNAPPY=$(SNAPPY) $(INCLUDE_DIRS)
+#CPPFLAGS = -std=c++11 $(M64) -O3 $(OPENMP) $(LOGGING_LEVEL) -DNCPU=$(NCPU) -DSNAPPY=$(SNAPPY) $(INCLUDE_DIRS)
+CPPFLAGS = -std=gnu++11 $(M64) -O3 $(OPENMP) $(LOGGING_LEVEL) -DNCPU=$(NCPU) -DSNAPPY=$(SNAPPY) $(INCLUDE_DIRS)
 
-FRED_memcheck: 	CPPFLAGS = -g -std=c++11 $(M64) -O0 -fopenmp $(LOGGING_LEVEL) -DNCPU=$(NCPU) -DSNAPPY=$(SNAPPY) -fno-omit-frame-pointer $(INCLUDE_DIRS)
-
+#FRED_memcheck: 	CPPFLAGS = -g -std=c++11 $(M64) -O0 -fopenmp $(LOGGING_LEVEL) -DNCPU=$(NCPU) -DSNAPPY=$(SNAPPY) -fno-omit-frame-pointer $(INCLUDE_DIRS)
+FRED_memcheck: 	CPPFLAGS = -g -std=gnu++11 $(M64) -O0 -fopenmp $(LOGGING_LEVEL) -DNCPU=$(NCPU) -DSNAPPY=$(SNAPPY) -fno-omit-frame-pointer $(INCLUDE_DIRS)
 
 ###############################################
 
@@ -169,11 +171,14 @@ fsz: $(SNAPPY_LIB) $(SNAPPY_OBJ) Global.h fsz.cc
 FRED_memcheck: FRED
 
 FRED_Unit_Tracker: 
-	cd TestSuite/Tracker; $(CPP) -std=c++11 -g -O0 -DUNIT_TEST=1 -I../../ Tracker_Unit_Test.cc -c -o Tracker_Unit_Test.o
-	cd TestSuite/Tracker; $(CPP) -std=c++11 -g -O0 -o FRED_Unit_Tracker -DUNIT_TEST=1 -I../../ Tracker_Unit_Test.o
+#	cd TestSuite/Tracker; $(CPP) -std=c++11 -g -O0 -DUNIT_TEST=1 -I../../ Tracker_Unit_Test.cc -c -o Tracker_Unit_Test.o
+#	cd TestSuite/Tracker; $(CPP) -std=c++11 -g -O0 -o FRED_Unit_Tracker -DUNIT_TEST=1 -I../../ Tracker_Unit_Test.o
+	cd TestSuite/Tracker; $(CPP) -std=gnu++11 -g -O0 -DUNIT_TEST=1 -I../../ Tracker_Unit_Test.cc -c -o Tracker_Unit_Test.o
+	cd TestSuite/Tracker; $(CPP) -std=gnu++11 -g -O0 -o FRED_Unit_Tracker -DUNIT_TEST=1 -I../../ Tracker_Unit_Test.o
 
 DEPENDS: $(SRC) $(HDR)
-	$(CPP) -std=c++11 -MM $(SRC) $(INCLUDE_DIRS) > DEPENDS
+#	$(CPP) -std=c++11 -MM $(SRC) $(INCLUDE_DIRS) > DEPENDS
+	$(CPP) -std=gnu++11 -MM $(SRC) $(INCLUDE_DIRS) > DEPENDS
 
 include DEPENDS
 

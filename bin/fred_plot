@@ -3,6 +3,9 @@ use strict;
 use warnings;
 use Env;
 use Getopt::Long qw(:config no_ignore_case bundling);
+use Cwd;
+
+my $cwd = getcwd();
 
 my $FRED = $ENV{FRED_HOME};
 die "$0: Please set environmental variable FRED_HOME to location of FRED home directory\n" if not $FRED;
@@ -348,10 +351,21 @@ print FH "\n";
 print FH "$_\n" for @data;
 print FH "\n";
 close FH;
+
 system "chmod +x $pltfile";
-system ($pltfile);
+if(system ($pltfile) != 0) {
+	print "Trying " . $cwd . "/" . $pltfile . "\n";
+	system ($cwd . "/" . $pltfile);
+} 
 print "fred_plot: source_file = $pltfile  image_file = $outfile\n";
-system ("open $outfile") if $display;
+
+if($^O eq "darwin") {
+	system ("open $outfile") if $display;
+}
+else {
+	system ("xdg-open $outfile") if $display;
+}
+
 exit;
 
 sub get_data {

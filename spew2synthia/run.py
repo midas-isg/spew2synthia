@@ -140,12 +140,16 @@ def out_pp_file(in_file_path, mapper, out_file_path):
                 if line.startswith('RT'):
                     cells.append('sporder')
                 school_id = cells[SCHOOL_COLUMN]
+                age = cells[RELP_COLUMN - 3]
                 if school_id in private_school_ids:
                     # print('Skipped due to private school ID =', school_id, ':', line.rstrip('\n'))
                     skips += 1
                     continue
-                else:
-                    sc_ids.add(school_id)
+                elif school_id and age != 'AGEP':
+                    if int(age) > 19:
+                        print('Skipped due to too old at age of ' + age + ' to go to school ID =', school_id, ':', line.rstrip('\n'))
+                        continue
+                sc_ids.add(school_id)
                 hid = cells[HID_COLUMN]
                 if cells[RELP_COLUMN] == '0':
                     hids.add(hid)

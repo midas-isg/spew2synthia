@@ -1,25 +1,19 @@
 path="/mnt/lustre0/machines/data.olympus.psc.edu/srv/apache/data/syneco/spew_1.2.0"
-fips = '01077010100'
-puma = '100'
+#fips = '01077010100'
+#puma = '100'
 #fips = '42003457100'
 #puma = '1807'
 #fips = '42065950700'
 #puma = '1300'
 
-code = fips[:5]
+#code = fips[:5]
 
 path_usa = path + '/americas/northern_america/usa'
-st = fips[:2]
-path_state_output = path_usa + '/' + st + '/output'
-path_env = path_state_output + '/environments'
-path_puma_eco = path_state_output + '/output_' + puma + '/eco/'
-
-# local files
-#path_env = './spew_sample/env'
-#path_puma_eco = './spew_sample'
-
-file_pp = path_puma_eco + '/people_' + fips + '.csv'
-file_hh = path_puma_eco + '/household_' + fips + '.csv'
+pattern_state_output = path_usa + '/{state}/output'
+pattern_env = pattern_state_output + '/environments'
+pattern_csv = pattern_state_output + '/**/{prefix}*.csv'
+pp_prefix = 'people_'
+hh_prefix = 'household_'
 
 pp_map = {'SERIALNO':'serialno',
           'place_id': 'stcotrbg',

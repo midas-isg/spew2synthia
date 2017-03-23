@@ -8,7 +8,7 @@ def main():
     # print(conf.path_puma_eco, os.listdir(conf.path_puma_eco))
 
     pp_csv = synth_file_name('people')
-    (hh_ids, sc_ids, wp_ids) = out_pp_file(conf.file_pp, pp_mapper, pp_csv)
+    (hh_ids, sc_ids, wp_ids) = out_pp_file([conf.file_pp], pp_mapper, pp_csv)
     reorder(pp_csv, [26, 8, 3, 7, 15, 14, 25, 29, 18, 27, 28])
 
     wp_csv = out_file_name('workplaces')
@@ -17,17 +17,17 @@ def main():
 
     sc_csv = out_file_name('schools')
     out_sc_file(sc_csv, sc_ids)
-    reorder(sc_csv, [3, 2, 5, 1, 1, 4, 1, 1, 1, 10, 1, 1, 1, 1, 7, 6, 1, 1])  # TODO missing variables used 1
+    reorder(sc_csv, [3, 2, 5, 1, 1, 4, 1, 1, 1, 10, 1, 1, 1, 1, 7, 6, 1, 1])  # missing variables used 1
 
     touch_file(synth_file_name('gq').replace('.csv', '.txt'))
     touch_file(synth_file_name('gq_people').replace('.csv', '.txt'))
 
-    ref_hh_ids = out_ref_hh_file(conf.file_hh, hh_mapper, os.devnull)  # out_file_name('ref_hh'))
+    ref_hh_ids = out_ref_hh_file([conf.file_hh], hh_mapper, os.devnull)  # out_file_name('ref_hh'))
     difference = hh_ids.difference(ref_hh_ids)
     if difference:
         raise Exception('Household IDs from people and household input files are different:' + str(difference))
     hh_csv = synth_file_name('households')
-    out_hh_file(conf.file_pp, hh_mapper, hh_csv)
+    out_hh_file([conf.file_pp], hh_mapper, hh_csv)
     reorder(hh_csv, [8, 3, 7, 25, 5, 6, 15, 10, 9])
 
 
@@ -37,8 +37,8 @@ def touch_file(filename):
 
 def reorder(csv, columns):
     out_file_path = csv.replace('.csv', '.txt')
-    print('reading', csv)
     print('writing', os.path.abspath(out_file_path))
+    print('reading', csv)
     f = open(out_file_path, 'w')
     template = '","'.join(['$' + str(x) for x in columns])
     subprocess.run(["awk", 'BEGIN { FS = "," } { print ' + template + '}', csv], stdout=f)
@@ -118,8 +118,7 @@ def out_file_name(name):
     return out + prefix + prefix + '_' + name + '.csv'
 
 
-def out_pp_file(in_file_path, mapper, out_file_path):
-    print('reading', in_file_path)
+def out_pp_file(in_file_paths, mapper, out_file_path):
     print('writing', os.path.abspath(out_file_path))
     private_school_ids = to_private_school_ids()
     # print(len(private_school_ids), private_school_ids)
@@ -131,70 +130,74 @@ def out_pp_file(in_file_path, mapper, out_file_path):
     hids = set()
     wp_ids = set()
     sc_ids = set()
-    mkdir(out_file_path)
     skips = 0
-    with open(in_file_path, 'r') as fin:
-        with open(out_file_path, 'w') as fout:
-            for line in fin:
-                cells = line.rstrip('\n').split(',')
-                if line.startswith('RT'):
-                    cells.append('sporder')
-                school_id = cells[SCHOOL_COLUMN]
-                age = cells[RELP_COLUMN - 3]
-                if school_id in private_school_ids:
-                    # print('Skipped due to private school ID =', school_id, ':', line.rstrip('\n'))
-                    skips += 1
-                    continue
-                elif school_id and age != 'AGEP':
-                    if int(age) > 19:
-                        print('Skipped due to too old at age of ' + age + ' to go to school ID =', school_id, ':', line.rstrip('\n'))
+    mkdir(out_file_path)
+    with open(out_file_path, 'w') as fout:
+        for in_file_path in in_file_paths:
+            with open(in_file_path, 'r') as fin:
+                print('reading', in_file_path)
+                for line in fin:
+                    cells = line.rstrip('\n').split(',')
+                    if line.startswith('RT'):
+                        cells.append('sporder')
+                    school_id = cells[SCHOOL_COLUMN]
+                    age = cells[RELP_COLUMN - 3]
+                    if school_id in private_school_ids:
+                        # print('Skipped due to private school ID =', school_id, ':', line.rstrip('\n'))
+                        skips += 1
                         continue
-                sc_ids.add(school_id)
-                hid = cells[HID_COLUMN]
-                if cells[RELP_COLUMN] == '0':
-                    hids.add(hid)
-                order = hid2cnt.get(hid, 0)
-                order += 1
-                cells.append(str(order))
-                hid2cnt[hid] = order
-                workplace_id = cells[WORKPLACE_COLUMN]
-                wp_ids.add(workplace_id)
-                row = ','.join([mapper(x) for x in cells])
-                fout.write(row + "\n")
+                    elif school_id and age != 'AGEP':
+                        if int(age) > 19:
+                            print('Skipped due to too old at age of ' + age + ' to go to school ID =', school_id, ':', line.rstrip('\n'))
+                            continue
+                    sc_ids.add(school_id)
+                    hid = cells[HID_COLUMN]
+                    if cells[RELP_COLUMN] == '0':
+                        hids.add(hid)
+                    order = hid2cnt.get(hid, 0)
+                    order += 1
+                    cells.append(str(order))
+                    hid2cnt[hid] = order
+                    workplace_id = cells[WORKPLACE_COLUMN]
+                    wp_ids.add(workplace_id)
+                    row = ','.join([mapper(x) for x in cells])
+                    fout.write(row + "\n")
     print('Skipped', skips, 'rows due to private schools')
     return hid2cnt.keys() | set(), sc_ids, wp_ids
 
 
-def out_ref_hh_file(in_file_path, mapper, out_file_path):
-    print('reading', in_file_path)
+def out_ref_hh_file(in_file_paths, mapper, out_file_path):
     print('writing', os.path.abspath(out_file_path))
     HID_COLUMN = 7
     result = set()
     mkdir(out_file_path)
-    with open(in_file_path, 'r') as fin:
-        with open(out_file_path, 'w') as fout:
-            for line in fin:
-                cells = line.split(',')
-                result.add(cells[HID_COLUMN])
-                row = ','.join([mapper(x) for x in cells])
-                fout.write(row)
+    with open(out_file_path, 'w') as fout:
+        for in_file_path in in_file_paths:
+            print('reading', in_file_path)
+            with open(in_file_path, 'r') as fin:
+                for line in fin:
+                    cells = line.split(',')
+                    result.add(cells[HID_COLUMN])
+                    row = ','.join([mapper(x) for x in cells])
+                    fout.write(row)
     return result
 
 
-def out_hh_file(in_file_path, mapper, out_file_path):
-    print('reading', in_file_path)
+def out_hh_file(in_file_paths, mapper, out_file_path):
     print('writing', os.path.abspath(out_file_path))
     RELP_COLUMN = 17
     mkdir(out_file_path)
-    with open(in_file_path, 'r') as fin:
-        with open(out_file_path, 'w') as fout:
-            for line in fin:
-                cells = line.split(',')
-                relate = cells[RELP_COLUMN]
-                if relate == '0' or relate == 'RELP':
-                    mapped_cells = [mapper(x) for x in cells]
-                    row = ','.join(mapped_cells)
-                    fout.write(row)
+    with open(out_file_path, 'w') as fout:
+        for in_file_path in in_file_paths:
+            print('reading', in_file_path)
+            with open(in_file_path, 'r') as fin:
+                for line in fin:
+                    cells = line.split(',')
+                    relate = cells[RELP_COLUMN]
+                    if relate == '0' or relate == 'RELP':
+                        mapped_cells = [mapper(x) for x in cells]
+                        row = ','.join(mapped_cells)
+                        fout.write(row)
 
 
 def mkdir(out_file_path):

@@ -33,6 +33,8 @@ for name in files:
     print_time()
     try:
         run.main(name)
+    except Exception:
+        pass
     finally:
         print_time()
         sys.stdout = common

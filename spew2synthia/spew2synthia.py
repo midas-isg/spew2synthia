@@ -32,7 +32,7 @@ for name in files:
     sys.stderr = open(path + name + '.err', 'w')
     print_time()
     try:
-        pass#run.main(name)
+        run.main(name)
     finally:
         print_time()
         sys.stdout = common

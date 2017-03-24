@@ -16,15 +16,24 @@ def print_time():
 #run.main('42')
 files = os.listdir(conf.path_usa)
 # print(files)
+path = 'std/'
+aid.mkdir(path)
+common = open(path + 'common.' + str(datetime.now()), 'w')
+sys.stdout = common
+sys.stderr = common
 for name in files:
     if name == 'input':
         continue
-    path = 'std/'
-    aid.mkdir(path)
-    sys.stdout = open(path + name + '.out', 'w')
+    stdout = path + name + '.out'
+    if os.path.exists(stdout):
+        print(stdout, 'already exists. Delete it if you want to rerun.')
+        continue
+    sys.stdout = open(stdout, 'w')
     sys.stderr = open(path + name + '.err', 'w')
     print_time()
     try:
-        run.main(name)
+        pass#run.main(name)
     finally:
         print_time()
+        sys.stdout = common
+        sys.stderr = common

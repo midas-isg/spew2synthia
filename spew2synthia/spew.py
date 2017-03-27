@@ -3,11 +3,11 @@ import conf
 
 
 def find_csvs(prefix, fips):
-    st = fips[:2]
-    return find(st, prefix + fips)
+    state = fips[:2]
+    return _find_csvs_by_state_and_prefix(state, prefix + fips)
 
 
-def find(state, prefix):
+def _find_csvs_by_state_and_prefix(state, prefix):
     pattern = conf.pattern_csv.format(state=state, prefix=prefix)
     print("Finding", pattern)
     files = glob.glob(pattern, recursive=True)
@@ -31,6 +31,3 @@ def check_consistent(csv_list1, csv_list2):
     difference = set1.difference(pp_set)
     if difference:
         raise Exception()
-
-
-# test()

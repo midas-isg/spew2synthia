@@ -1,13 +1,4 @@
 path="/mnt/lustre0/machines/data.olympus.psc.edu/srv/apache/data/syneco/spew_1.2.0"
-#fips = '01077010100'
-#puma = '100'
-#fips = '42003457100'
-#puma = '1807'
-#fips = '42065950700'
-#puma = '1300'
-
-#code = fips[:5]
-
 path_usa = path + '/americas/northern_america/usa'
 pattern_state_output = path_usa + '/{state}/output'
 pattern_env = pattern_state_output + '/environments'

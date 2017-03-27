@@ -6,9 +6,9 @@ import conf
 import spew
 
 
-def main(fips):
-    print(conf.path_usa, os.listdir(conf.path_usa))
+def translate(fips):
     code = fips[:5]
+    print(conf.path_usa, os.listdir(conf.path_usa))
     pp_csvs = spew.find_csvs(conf.pp_prefix, fips)
     env_path = path_env(fips)
 
@@ -229,7 +229,7 @@ def wp_mapper(x):
 
 def test():
     import filecmp
-    main('01077010100')
+    translate('01077010100')
     actual = '../populations/2010_ver1_01077'
     expected = './expected/2010_ver1_01077'
     dcmp = filecmp.dircmp(actual, expected)
@@ -247,6 +247,3 @@ def same_files(dcmp):
     missing = expected_files.difference(actual_files)
     if missing:
         raise Exception('Missing files: ' + str(missing))
-
-
-# test()

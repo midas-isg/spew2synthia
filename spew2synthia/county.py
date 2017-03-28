@@ -17,7 +17,7 @@ def to_county_id(csv):
 def translate(states):
     path = 'logs/'
     aid.mkdir(path)
-    with open(path + 'countries.' + str(datetime.now()), 'w') as common:
+    with open(path + 'counties.' + str(datetime.now()), 'w') as common:
         sys.stdout = common
         sys.stderr = common
         #print(states)
@@ -27,9 +27,9 @@ def translate(states):
             aid.log_time('Translating ' + state)
             try:
                 pp_csvs = spew.find_csvs(conf.pp_prefix, state)
-                countries = set([to_county_id(csv) for csv in pp_csvs])
-                print(countries, flush=True)
-                for county in countries:
+                counties = set([to_county_id(csv) for csv in pp_csvs])
+                print(counties, flush=True)
+                for county in counties:
                     try:
                         prefix = path + state + '/'+ county
                         stdout = prefix + '.out'

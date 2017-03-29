@@ -1,5 +1,4 @@
 import os
-import subprocess
 
 import aid
 import conf
@@ -8,51 +7,31 @@ import spew
 
 def translate(fips):
     code = fips[:5]
-    print(conf.path_usa, os.listdir(conf.path_usa))
     pp_csvs = spew.find_csvs(conf.pp_prefix, fips)
     env_path = path_env(fips)
 
     pp_csv = synth_file_name(code, 'people')
-    (hh_ids, sc_ids, wp_ids) = out_pp_file(env_path, pp_csvs, pp_mapper, pp_csv)
-    reorder(pp_csv, [26, 8, 3, 7, 15, 14, 25, 29, 18, 27, 28])
+    (hh_ids, sc_ids, wp_ids) = out_pp_file(env_path, pp_csvs, spew.pp_mapper, pp_csv)
+    aid.reorder(pp_csv, [26, 8, 3, 7, 15, 14, 25, 29, 18, 27, 28])
 
     sc_csv = out_file_name(code, 'schools')
     out_sc_file(env_path, sc_csv, sc_ids)
-    reorder(sc_csv, [3, 2, 5, 1, 1, 4, 1, 1, 1, 10, 1, 1, 1, 1, 7, 6, 1, 1])  # missing variables used 1
+    aid.reorder(sc_csv, [3, 2, 5, 1, 1, 4, 1, 1, 1, 10, 1, 1, 1, 1, 7, 6, 1, 1])  # missing variables used 1
 
     wp_csv = out_file_name(code, 'workplaces')
     out_wp_file(env_path, wp_csv, wp_ids)
-    reorder(wp_csv, [4, 6, 2, 1])
+    aid.reorder(wp_csv, [4, 6, 2, 1])
 
-    ref_hh_ids = out_ref_hh_file(spew.find_csvs(conf.hh_prefix, fips), hh_mapper, os.devnull)  # out_file_name('ref_hh'))
+    ref_hh_ids = out_ref_hh_file(spew.find_csvs(conf.hh_prefix, fips), spew.hh_mapper, os.devnull)  # out_file_name('ref_hh'))
     difference = hh_ids.difference(ref_hh_ids)
     if difference:
         raise Exception('Household IDs from people and household input files are different:' + str(difference))
     hh_csv = synth_file_name(code, 'households')
-    out_hh_file(pp_csvs, hh_mapper, hh_csv)
-    reorder(hh_csv, [8, 3, 7, 25, 5, 6, 15, 10, 9])
+    out_hh_file(pp_csvs, spew.hh_mapper, hh_csv)
+    aid.reorder(hh_csv, [8, 3, 7, 25, 5, 6, 15, 10, 9])
 
-    touch_file(synth_file_name(code, 'gq').replace('.csv', '.txt'))
-    touch_file(synth_file_name(code, 'gq_people').replace('.csv', '.txt'))
-
-
-def touch_file(filename):
-    open(filename, 'a').close()
-
-
-def reorder(csv, columns):
-    out_file_path = csv.replace('.csv', '.txt')
-    print('writing', os.path.abspath(out_file_path))
-    print('reading', csv)
-    f = open(out_file_path, 'w')
-    template = '","'.join(['$' + str(x) for x in columns])
-    subprocess.run(["awk", 'BEGIN { FS = "," } { print ' + template + '}', csv], stdout=f)
-    delete(csv)
-
-
-def delete(file):
-    print('deleting', file)
-    os.remove(file)
+    aid.touch_file(synth_file_name(code, 'gq').replace('.csv', '.txt'))
+    aid.touch_file(synth_file_name(code, 'gq_people').replace('.csv', '.txt'))
 
 
 def out_wp_file(env_path, out_file_path, wp_ids):
@@ -68,7 +47,7 @@ def out_wp_file(env_path, out_file_path, wp_ids):
                 wkb_hex = str(cells[5][1:-2])
                 id = cells[1]
                 if wkb_hex == 'wkb_geometry':
-                    row = ','.join([wp_mapper(x) for x in cells])
+                    row = ','.join([spew.wp_mapper(x) for x in cells])
                     fout.write('longitude,latitude,' + row)
                 elif id in wp_ids:
                     fout.write(wp.to_long_lat_from_hex(wkb_hex) + ',' + line)
@@ -91,7 +70,7 @@ def out_sc_file(env_path, out_file_path, sc_ids):
                 cells = line.rstrip('\n').split(',')
                 id = cells[2][1:-1]
                 if line.startswith('"","School"'):
-                    row = ','.join([sc_mapper(x) for x in cells])
+                    row = ','.join([spew.sc_mapper(x) for x in cells])
                     fout.write(row + '\n')
                 elif id in sc_ids:
                     fout.write(line)
@@ -209,22 +188,6 @@ def out_hh_file(in_file_paths, mapper, out_file_path):
                         mapped_cells = [mapper(x) for x in cells]
                         row = ','.join(mapped_cells)
                         fout.write(row)
-
-
-def hh_mapper(x):
-    return conf.hh_map.get(x, x)
-
-
-def pp_mapper(x):
-    return conf.pp_map.get(x, x)
-
-
-def sc_mapper(x):
-    return conf.sc_map.get(x, x)
-
-
-def wp_mapper(x):
-    return conf.wp_map.get(x, x)
 
 
 def test():

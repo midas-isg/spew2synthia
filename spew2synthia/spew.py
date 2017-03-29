@@ -2,6 +2,32 @@ import glob
 import conf
 
 
+def find_country_by_iso3(iso3):
+    files = find_countries(iso3)
+    return files[0]
+
+
+def find_all_countries():
+    country_outputs = find_countries('*/output')
+    return [o.replace('/output', '') for o in country_outputs]
+
+
+def find_ipums_countries_ids():
+    ids = [o.split('/')[-1] for o in find_all_countries()]
+    ids.remove('can')
+    return ids
+
+
+def find_countries(iso3):
+    pattern = conf.pattern_country.format(iso3=iso3)
+    print("Finding", pattern)
+    files = glob.glob(pattern, recursive=False)
+    if not files:
+        raise Exception('No directory for country ISO3 = ' + iso3)
+    # print('Found', len(files), files)
+    return files
+
+
 def find_csvs(prefix, fips):
     state = fips[:2]
     return _find_csvs_by_state_and_prefix(state, prefix + fips)
@@ -31,3 +57,19 @@ def check_consistent(csv_list1, csv_list2):
     difference = set1.difference(pp_set)
     if difference:
         raise Exception()
+
+
+def hh_mapper(x):
+    return conf.hh_map.get(x, x)
+
+
+def pp_mapper(x):
+    return conf.pp_map.get(x, x)
+
+
+def sc_mapper(x):
+    return conf.sc_map.get(x, x)
+
+
+def wp_mapper(x):
+    return conf.wp_map.get(x, x)

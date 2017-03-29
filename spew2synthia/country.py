@@ -3,30 +3,30 @@ import os
 import sys
 
 import aid
-import conf
-import us
+import ipums
+import spew
 
 
-def translate(states):
-    print('Started translating states in', states)
+def translate(ids):
+    print('Started translating countries in', ids)
     log_path = aid.make_path('logs/')
-    with open(log_path + 'states.' + str(datetime.now()), 'w') as common:
+    with open(log_path + 'countries.' + str(datetime.now()), 'w') as common:
         sys.stdout = common
         sys.stderr = common
-        print('Translating', states)
-        for state in states:
-            if state == 'input':
+        print('Translating countries with ISO 3166-1 alpha-3 in ', ids)
+        for iso3 in ids:
+            if iso3 == 'input':
                 continue
-            stdout = log_path + state + '.out'
+            stdout = log_path + iso3 + '.out'
             if os.path.exists(stdout):
                 print(stdout, 'already exists. Delete it if you want to rerun.')
                 continue
-            aid.log_time('Translating ' + state)
+            aid.log_time('Translating ' + iso3)
             with open(stdout, 'w') as sys.stdout:
-                with open(log_path + state + '.err', 'w') as sys.stderr:
+                with open(log_path + iso3 + '.err', 'w') as sys.stderr:
                     aid.log_time()
                     try:
-                        us.translate(state)
+                        ipums.translate(iso3)
                     except Exception as e:
                         aid.log_error(e)
                     finally:
@@ -37,8 +37,8 @@ def translate(states):
 
 
 def test():
-    translate(['56'])
+    translate(['fji'])
 
 
 if __name__ == "__main__":
-    translate(os.listdir(conf.path_usa))
+    translate(spew.find_ipums_countries_ids())

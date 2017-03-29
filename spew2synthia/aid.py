@@ -1,7 +1,10 @@
 from datetime import datetime
 import os
 import sys
+import subprocess
 import traceback
+# File System
+########################################################################################################################
 
 
 def mkdir(out_file_path):
@@ -10,13 +13,35 @@ def mkdir(out_file_path):
         os.makedirs(dirname)
 
 
-def log_time(s=''):
-    print(datetime.now(), s, flush=True)
-
-
 def make_path(path):
     mkdir(path)
     return path
+
+
+def touch_file(filename):
+    open(filename, 'a').close()
+
+
+def reorder(csv, columns):
+    out_file_path = csv.replace('.csv', '.txt')
+    print('writing', os.path.abspath(out_file_path))
+    print('reading', csv)
+    f = open(out_file_path, 'w')
+    template = '","'.join(['$' + str(x) for x in columns])
+    subprocess.run(["awk", 'BEGIN { FS = "," } { print ' + template + '}', csv], stdout=f)
+    delete(csv)
+
+
+def delete(file):
+    print('deleting', file)
+    os.remove(file)
+
+# Logs
+########################################################################################################################
+
+
+def log_time(s=''):
+    print(datetime.now(), s, flush=True)
 
 
 def log_error(e):
@@ -24,5 +49,3 @@ def log_error(e):
                                      e, e.__traceback__)
     for tb in tbs:
         print(tb, file=sys.stderr, flush=True)
-
-

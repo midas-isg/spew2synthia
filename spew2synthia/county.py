@@ -15,16 +15,17 @@ def to_county_id(csv):
 
 
 def translate(states):
+    print('Started translating counties in', states)
     path = 'logs/'
     aid.mkdir(path)
     with open(path + 'counties.' + str(datetime.now()), 'w') as common:
         sys.stdout = common
         sys.stderr = common
-        #print(states)
+        print('Translating', states)
         for state in states:
             if state == 'input':
                 continue
-            aid.log_time('Translating ' + state)
+            aid.log_time('Translating state ID = ' + state)
             try:
                 pp_csvs = spew.find_csvs(conf.pp_prefix, state)
                 counties = set([to_county_id(csv) for csv in pp_csvs])
@@ -37,7 +38,7 @@ def translate(states):
                         if os.path.exists(stdout):
                             print(stdout, 'already exists. Delete it if you want to rerun.')
                             continue
-                        aid.log_time('Translating ' + county)
+                        aid.log_time('Translating county ID = ' + county)
                         sys.stdout = open(stdout, 'w')
                         sys.stderr = open(prefix + '.err', 'w')
                         us.translate(county)

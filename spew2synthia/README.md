@@ -45,3 +45,15 @@ Note:
   - Overall stdout will be logged into file counties.< timestamp >.
   - All stdout of each state will be logged into file <state FIPS #>/<county FIPS #>.out. *Note:* if the .out file exists, the script will skip the county.
   - If there is any error, it will be logged into file <state FIPS #>/<county FIPS #>.err.
+
+### For other countries (using IPUMS)
+To translate all countries using IPUMS data sources:
+
+`python3 country.py`
+
+Note: 
+- Output files will be generated in directory < FRED root >/populations/spew_1.2.0_<country ISO 3166-1 alpha-3>
+- Log files will be generated in < FRED root >/spew2synthia/logs
+  - Overall stdout will be logged into file countries.< timestamp >.
+  - All stdout of each state will be logged into file <country ISO 3166-1 alpha-3>.out. *Note:* if the .out file exists, the script will skip the county.
+  - If there is any error, it will be logged into file <country ISO 3166-1 alpha-3>.err.

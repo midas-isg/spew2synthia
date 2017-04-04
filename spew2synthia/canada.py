@@ -39,7 +39,7 @@ def translate(iso3):
 def save_hh_as_text_with_reordering_columns(hh_csv):
     # csv columns (input):
     # serialno,puma_id,stcotrbg,sp_id,longitude, latitude,AGEGRP,HRSWRK,IMMSTAT,hh_income,
-    # MODE,OCC,POB,RELIGION,SEX, SYNTHETIC_PID,dummy
+    # MODE,OCC,POB,RELIGION,SEX, SYNTHETIC_PID,dummy,sex
     # text columns (output):
     # sp_id,serialno,stcotrbg,hh_race,hh_income,hh_size,hh_age,latitude,longitude
     aid.reorder(hh_csv, [4, 1, 3, 17, 10, 17, 17, 6, 5])
@@ -51,7 +51,7 @@ def save_pp_as_text_with_reordering_columns(pp_csv):
     # MODE,OCC,POB,RELIGION,sex, sp_id,sporder,dummy,1,
     # text columns (output):
     # sp_id,sp_hh_id,serialno,stcotrbg,age,sex,race,sporder,relate,sp_school_id,sp_work_id
-    aid.reorder(pp_csv, [16, 4, 1, 3, 18, 15, 18, 17, 18, 18, 18, 7])
+    aid.reorder(pp_csv, [16, 4, 1, 3, 18, 19, 18, 17, 18, 18, 18, 7])
 
 
 def synth_file_name(code, type):
@@ -66,9 +66,10 @@ def out_file_name(code, name):
 
 def out_pp_file(in_file_paths, mapper, out_file_path):
     # SERIALNO,puma_id,place_id,SYNTHETIC_HID,longitude, latitude,AGEGRP,HRSWRK,IMMSTAT,INCTAX,
-    # MODE,OCC,POB,RELIGION,SEX, SYNTHETIC_PID+sporder,dummy
+    # MODE,OCC,POB,RELIGION,SEX, SYNTHETIC_PID+sporder,dummy,sex
     print('writing', os.path.abspath(out_file_path))
     HID_COLUMN = 3
+    SEX_COLUMN = 14
     RELP_COLUMN = 6
     SCHOOL_COLUMN = 0
     WORKPLACE_COLUMN = 0
@@ -78,6 +79,7 @@ def out_pp_file(in_file_paths, mapper, out_file_path):
     sc_ids = set()
     skips = 0
     aid.mkdir(out_file_path)
+    reversed_sex = {'1':'2', '2':'1'}
     with open(out_file_path, 'w') as fout:
         file_count = 0
         for in_file_path in in_file_paths:
@@ -89,7 +91,7 @@ def out_pp_file(in_file_paths, mapper, out_file_path):
                         file_count += 1
                         if file_count > 1:
                             continue
-                        cells.append('sporder,dummy')
+                        cells.append('sporder,dummy,sex')
                     else:
                         hid = cells[HID_COLUMN]
                         if cells[RELP_COLUMN] == '0':
@@ -98,6 +100,8 @@ def out_pp_file(in_file_paths, mapper, out_file_path):
                         order += 1
                         cells.append(str(order))
                         cells.append('')
+                        sex = cells[SEX_COLUMN]
+                        cells.append(reversed_sex.get(sex, sex))
                         hid2cnt[hid] = order
                         #school_id = cells[SCHOOL_COLUMN]
                         #sc_ids.add(school_id)

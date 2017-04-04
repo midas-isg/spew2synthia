@@ -1,33 +1,57 @@
-import glob
 import os
 
 import aid
 import conf
 import spew
 
+prefix2csvs = {}
+
+
+def find_csvs_by_iso3_and_prefix(iso3, prefix):
+    result = prefix2csvs.get(prefix, None)
+    if result:
+        return result
+    return spew.find_csvs_by_iso3_and_prefix(iso3, prefix)
+
 
 def translate(iso3):
     code = iso3
-    pp_csvs = spew.find_csvs_by_iso3_and_prefix(iso3, conf.pp_prefix)
+    pp_csvs = find_csvs_by_iso3_and_prefix(iso3, conf.pp_prefix)
 
     pp_csv = synth_file_name(code, 'people')
     (hh_ids, sc_ids, wp_ids) = out_pp_file(pp_csvs, spew.pp_mapper, pp_csv)
-    aid.reorder(pp_csv, [17, 9, 3, 8, 12, 13, 14, 18, 7, 15, 15]) # TODO sp_work_id using sp_school_id
+    save_pp_as_text_with_reordering_columns(pp_csv)
 
-
-    ref_hh_ids = out_ref_hh_file(spew.find_csvs_by_iso3_and_prefix(iso3, conf.hh_prefix), spew.hh_mapper, os.devnull)  # out_file_name('ref_hh'))
+    ref_hh_ids = out_ref_hh_file(find_csvs_by_iso3_and_prefix(iso3, conf.hh_prefix), spew.hh_mapper, os.devnull)  # out_file_name('ref_hh'))
     difference = hh_ids.difference(ref_hh_ids)
     if difference:
         raise Exception('Household IDs from people and household input files are different:' + str(difference))
     hh_csv = synth_file_name(code, 'households')
     out_hh_file(pp_csvs, spew.hh_mapper, hh_csv)
-    aid.reorder(hh_csv, [9, 3, 8, 14, 16, 4, 12, 11, 10])
+    save_hh_as_text_with_reordering_columns(hh_csv)
 
     aid.touch_file(out_file_name(code, 'schools').replace('.csv', '.txt'))
     aid.touch_file(out_file_name(code, 'workplaces').replace('.csv', '.txt'))
     aid.touch_file(synth_file_name(code, 'gq').replace('.csv', '.txt'))
     aid.touch_file(synth_file_name(code, 'gq_people').replace('.csv', '.txt'))
 
+
+def save_hh_as_text_with_reordering_columns(hh_csv):
+    # csv columns (input):
+    # serialno,puma_id,stcotrbg,sp_id,longitude, latitude,AGEGRP,HRSWRK,IMMSTAT,hh_income,
+    # MODE,OCC,POB,RELIGION,SEX, SYNTHETIC_PID,dummy
+    # text columns (output):
+    # sp_id,serialno,stcotrbg,hh_race,hh_income,hh_size,hh_age,latitude,longitude
+    aid.reorder(hh_csv, [4, 1, 3, 17, 10, 17, 17, 6, 5])
+
+
+def save_pp_as_text_with_reordering_columns(pp_csv):
+    # csv columns (input):
+    # serialno,puma_id,stcotrbg,sp_hh_id,longitude, latitude,AGEGRP,HRSWRK,IMMSTAT,INCTAX,
+    # MODE,OCC,POB,RELIGION,sex, sp_id,sporder,dummy,1,
+    # text columns (output):
+    # sp_id,sp_hh_id,serialno,stcotrbg,age,sex,race,sporder,relate,sp_school_id,sp_work_id
+    aid.reorder(pp_csv, [16, 4, 1, 3, 18, 15, 18, 17, 18, 18, 18, 7])
 
 
 def synth_file_name(code, type):
@@ -41,12 +65,12 @@ def out_file_name(code, name):
 
 
 def out_pp_file(in_file_paths, mapper, out_file_path):
-    # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
-    # latitude,AGE,SEX,RACE,SCHOOL, INCTOT,SYNTHETIC_PID+sporder
+    # SERIALNO,puma_id,place_id,SYNTHETIC_HID,longitude, latitude,AGEGRP,HRSWRK,IMMSTAT,INCTAX,
+    # MODE,OCC,POB,RELIGION,SEX, SYNTHETIC_PID+sporder,dummy
     print('writing', os.path.abspath(out_file_path))
-    HID_COLUMN = 8
+    HID_COLUMN = 3
     RELP_COLUMN = 6
-    SCHOOL_COLUMN = 14
+    SCHOOL_COLUMN = 0
     WORKPLACE_COLUMN = 0
     hid2cnt = {}
     hids = set()
@@ -61,22 +85,24 @@ def out_pp_file(in_file_paths, mapper, out_file_path):
                 print('reading', in_file_path)
                 for line in fin:
                     cells = line.rstrip('\n').split(',')
-                    if line.startswith('COUNTRY'):
+                    if line.startswith('SERIALNO'):
                         file_count += 1
                         if file_count > 1:
                             continue
-                        cells.append('sporder')
-                    school_id = cells[SCHOOL_COLUMN]
-                    sc_ids.add(school_id)
-                    hid = cells[HID_COLUMN]
-                    if cells[RELP_COLUMN] == '0':
-                        hids.add(hid)
-                    order = hid2cnt.get(hid, 0)
-                    order += 1
-                    cells.append(str(order))
-                    hid2cnt[hid] = order
-                    #workplace_id = cells[WORKPLACE_COLUMN]
-                    #wp_ids.add(workplace_id)
+                        cells.append('sporder,dummy')
+                    else:
+                        hid = cells[HID_COLUMN]
+                        if cells[RELP_COLUMN] == '0':
+                            hids.add(hid)
+                        order = hid2cnt.get(hid, 0)
+                        order += 1
+                        cells.append(str(order))
+                        cells.append('')
+                        hid2cnt[hid] = order
+                        #school_id = cells[SCHOOL_COLUMN]
+                        #sc_ids.add(school_id)
+                        #workplace_id = cells[WORKPLACE_COLUMN]
+                        #wp_ids.add(workplace_id)
                     row = ','.join([mapper(x) for x in cells])
                     fout.write(row + "\n")
     print('Skipped', skips, 'rows due to private schools')
@@ -84,9 +110,9 @@ def out_pp_file(in_file_paths, mapper, out_file_path):
 
 
 def out_ref_hh_file(in_file_paths, mapper, out_file_path):
-    # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude, latitude
+    # SERIALNO,puma_id,place_id,SYNTHETIC_HID,longitude, latitude
     print('writing', os.path.abspath(out_file_path))
-    HID_COLUMN = 8
+    HID_COLUMN = 3
     result = set()
     aid.mkdir(out_file_path)
     with open(out_file_path, 'w') as fout:
@@ -104,10 +130,10 @@ def out_ref_hh_file(in_file_paths, mapper, out_file_path):
 
 
 def out_hh_file(in_file_paths, mapper, out_file_path):
-    # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
-    # latitude,AGE,SEX,RACE,SCHOOL, INCTOT,SYNTHETIC_PID
+    # SERIALNO,puma_id,place_id,SYNTHETIC_HID,longitude, latitude,AGEGRP,HRSWRK,IMMSTAT,INCTAX,
+    # MODE,OCC,POB,RELIGION,SEX, SYNTHETIC_PID+dummy
     print('writing', os.path.abspath(out_file_path))
-    HID_COLUMN = 8
+    HID_COLUMN = 3
     aid.mkdir(out_file_path)
     hids = set()
     with open(out_file_path, 'w') as fout:
@@ -116,24 +142,29 @@ def out_hh_file(in_file_paths, mapper, out_file_path):
             print('reading', in_file_path)
             with open(in_file_path, 'r') as fin:
                 for line in fin:
-                    if line.startswith('COUNTRY'):
+                    cells = line.strip('\n').split(',')
+                    if line.startswith('SERIALNO'):
+                        cells.append('dummy')
                         file_count += 1
                         if file_count > 1:
                             continue
-                    cells = line.split(',')
+                    else:
+                        cells.append('')
                     hid = cells[HID_COLUMN]
                     if hid not in hids or hid == 'SYNTHETIC_HID':
                         hids.add(hid)
                         mapped_cells = [mapper(x) for x in cells]
                         row = ','.join(mapped_cells)
-                        fout.write(row)
+                        fout.write(row + '\n')
 
 
 def test():
+    prefix2csvs[conf.hh_prefix] = ['spew_sample/can/household_4620440.00.csv']
+    prefix2csvs[conf.pp_prefix] = ['spew_sample/can/people_4620440.00.csv']
     import filecmp
-    translate('fji')
-    actual = '../populations/spew_1.2.0_fji'
-    expected = './expected/spew_1.2.0_fji'
+    translate('can')
+    actual = '../populations/spew_1.2.0_can'
+    expected = './expected/spew_1.2.0_can'
     dcmp = filecmp.dircmp(actual, expected)
     same_files(dcmp)
     if dcmp.diff_files:

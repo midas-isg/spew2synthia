@@ -3,6 +3,7 @@ import os
 import sys
 
 import aid
+import canada
 import ipums
 import spew
 
@@ -26,7 +27,10 @@ def translate(ids):
                 with open(log_path + iso3 + '.err', 'w') as sys.stderr:
                     aid.log_time()
                     try:
-                        ipums.translate(iso3)
+                        if iso3 == spew.ISO3_CANADA:
+                            canada.translate(iso3)
+                        else:
+                            ipums.translate(iso3)
                     except Exception as e:
                         aid.log_error(e)
                     finally:
@@ -35,10 +39,10 @@ def translate(ids):
                         sys.stderr = common
 
 
-
 def test():
     translate(['fji'])
 
 
 if __name__ == "__main__":
+    translate([spew.ISO3_CANADA])
     translate(spew.find_ipums_countries_ids())

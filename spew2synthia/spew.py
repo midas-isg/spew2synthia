@@ -1,5 +1,18 @@
 import glob
 import conf
+ISO3_CANADA = 'can'
+
+
+def find_csvs_by_iso3_and_prefix(iso3, prefix):
+    path = find_country_by_iso3(iso3)
+    pattern_csv = path + '/**/{prefix}*.csv'
+    pattern = pattern_csv.format(prefix=prefix)
+    print("Finding", pattern)
+    files = glob.glob(pattern, recursive=True)
+    if not files:
+        raise Exception('No file starting with ' + prefix)
+    print('Found', len(files), [p.split(iso3 + '/output/')[1] for p in files])
+    return files
 
 
 def find_country_by_iso3(iso3):
@@ -14,7 +27,7 @@ def find_all_countries():
 
 def find_ipums_countries_ids():
     ids = [o.split('/')[-1] for o in find_all_countries()]
-    ids.remove('can')
+    ids.remove(ISO3_CANADA)
     return ids
 
 

@@ -5,7 +5,22 @@ import conf
 import spew
 
 prefix2csvs = {}
-
+age_group2age = {
+    '1': '0',
+    '2': '10',
+    '3': '15',
+    '4': '20',
+    '5': '25',
+    '6': '30',
+    '7': '35',
+    '8': '40',
+    '9': '45',
+    '10': '50',
+    '11': '55',
+    '12': '65',
+    '13': '75',
+    '88': 'Not available'
+}
 
 def find_csvs_by_iso3_and_prefix(iso3, prefix):
     result = prefix2csvs.get(prefix, None)
@@ -48,10 +63,12 @@ def save_hh_as_text_with_reordering_columns(hh_csv):
 def save_pp_as_text_with_reordering_columns(pp_csv):
     # csv columns (input):
     # serialno,puma_id,stcotrbg,sp_hh_id,longitude, latitude,AGEGRP,HRSWRK,IMMSTAT,INCTAX,
-    # MODE,OCC,POB,RELIGION,sex, sp_id,sporder,dummy,1,
+    # MODE,OCC,POB,RELIGION,sex, sp_id,sporder,dummy,sex,age
     # text columns (output):
+    # sp_id,sp_hh_id,serialno,stcotrbg,age,sex,race,sporder,relate,sp_school_id,sp_work_id,AGEGRP
+    #aid.reorder(pp_csv, [16, 4, 1, 3, 18, 19, 18, 17, 18, 18, 18, 7])
     # sp_id,sp_hh_id,serialno,stcotrbg,age,sex,race,sporder,relate,sp_school_id,sp_work_id
-    aid.reorder(pp_csv, [16, 4, 1, 3, 18, 19, 18, 17, 18, 18, 18, 7])
+    aid.reorder(pp_csv, [16, 4, 1, 3, 20, 19, 18, 17, 18, 18, 18])
 
 
 def synth_file_name(code, type):
@@ -66,13 +83,14 @@ def out_file_name(code, name):
 
 def out_pp_file(in_file_paths, mapper, out_file_path):
     # SERIALNO,puma_id,place_id,SYNTHETIC_HID,longitude, latitude,AGEGRP,HRSWRK,IMMSTAT,INCTAX,
-    # MODE,OCC,POB,RELIGION,SEX, SYNTHETIC_PID+sporder,dummy,sex
+    # MODE,OCC,POB,RELIGION,SEX, SYNTHETIC_PID+sporder,dummy,sex,age
     print('writing', os.path.abspath(out_file_path))
     HID_COLUMN = 3
     SEX_COLUMN = 14
     RELP_COLUMN = 6
     SCHOOL_COLUMN = 0
     WORKPLACE_COLUMN = 0
+    AGEGRP_COLUMN = 6
     hid2cnt = {}
     hids = set()
     wp_ids = set()
@@ -91,7 +109,7 @@ def out_pp_file(in_file_paths, mapper, out_file_path):
                         file_count += 1
                         if file_count > 1:
                             continue
-                        cells.append('sporder,dummy,sex')
+                        cells.append('sporder,dummy,sex,age')
                     else:
                         hid = cells[HID_COLUMN]
                         if cells[RELP_COLUMN] == '0':
@@ -102,6 +120,8 @@ def out_pp_file(in_file_paths, mapper, out_file_path):
                         cells.append('')
                         sex = cells[SEX_COLUMN]
                         cells.append(reversed_sex.get(sex, sex))
+                        agegroup = cells[AGEGRP_COLUMN]
+                        cells.append(age_group2age.get(agegroup, agegroup))
                         hid2cnt[hid] = order
                         #school_id = cells[SCHOOL_COLUMN]
                         #sc_ids.add(school_id)

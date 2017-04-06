@@ -3,11 +3,13 @@ import os
 import aid
 import conf
 import spew
+prefix2csvs = {}
+test_env_path = None
 
 
 def translate(fips):
     code = fips[:5]
-    pp_csvs = spew.find_csvs(conf.pp_prefix, fips)
+    pp_csvs = find_csvs(conf.pp_prefix, fips)
     env_path = path_env(fips)
 
     pp_csv = synth_file_name(code, 'people')
@@ -22,7 +24,7 @@ def translate(fips):
     out_wp_file(env_path, wp_csv, wp_ids)
     aid.reorder(wp_csv, [4, 6, 2, 1])
 
-    ref_hh_ids = out_ref_hh_file(spew.find_csvs(conf.hh_prefix, fips), spew.hh_mapper, os.devnull)  # out_file_name('ref_hh'))
+    ref_hh_ids = out_ref_hh_file(find_csvs(conf.hh_prefix, fips), spew.hh_mapper, os.devnull)
     difference = hh_ids.difference(ref_hh_ids)
     if difference:
         raise Exception('Household IDs from people and household input files are different:' + str(difference))
@@ -32,6 +34,13 @@ def translate(fips):
 
     aid.touch_file(synth_file_name(code, 'gq').replace('.csv', '.txt'))
     aid.touch_file(synth_file_name(code, 'gq_people').replace('.csv', '.txt'))
+
+
+def find_csvs(prefix, fips):
+    result = prefix2csvs.get(prefix, None)
+    if result:
+        return result
+    return spew.find_csvs(fips, prefix)
 
 
 def out_wp_file(env_path, out_file_path, wp_ids):
@@ -47,7 +56,7 @@ def out_wp_file(env_path, out_file_path, wp_ids):
                 wkb_hex = str(cells[5][1:-2])
                 id = cells[1]
                 if wkb_hex == 'wkb_geometry':
-                    row = ','.join([spew.wp_mapper(x) for x in cells])
+                    row = ','.join(spew.wp_mapper(x) for x in cells)
                     fout.write('longitude,latitude,' + row)
                 elif id in wp_ids:
                     fout.write(wp.to_long_lat_from_hex(wkb_hex) + ',' + line)
@@ -60,21 +69,32 @@ def out_wp_file(env_path, out_file_path, wp_ids):
 
 
 def out_sc_file(env_path, out_file_path, sc_ids):
-    in_file_path = env_path + '/public_schools.csv'
-    print('reading', in_file_path)
-    print('writing', os.path.abspath(out_file_path))
+    LONG_COLUMN = 5
+    COLUMNS = 10
+    in_file_paths = [env_path + '/public_schools.csv', env_path + '/private_schools.csv']
     ids = set()
-    with open(in_file_path) as fin:
-        with open(out_file_path, 'w') as fout:
-            for line in fin:
-                cells = line.rstrip('\n').split(',')
-                id = cells[2][1:-1]
-                if line.startswith('"","School"'):
-                    row = ','.join([spew.sc_mapper(x) for x in cells])
-                    fout.write(row + '\n')
-                elif id in sc_ids:
-                    fout.write(line)
-                ids.add(id)
+    with open(out_file_path, 'w') as fout:
+        print('writing', os.path.abspath(out_file_path))
+        file_count = 0
+        for in_file_path in in_file_paths:
+            with open(in_file_path) as fin:
+                print('reading', in_file_path)
+                for line in fin:
+                    cells = line.rstrip('\n').split(',')
+                    id = cells[2][1:-1]
+                    if line.startswith('"","School"'):
+                        file_count += 1
+                        if file_count > 1:
+                            continue
+                        row = ','.join(spew.sc_mapper(x) for x in cells)
+                        fout.write(row + '\n')
+                    elif id in sc_ids:
+                        row = ','.join(x for x in cells[:LONG_COLUMN])
+                        if len(cells) < COLUMNS:
+                            row += ',,'
+                        row += ',' + ','.join(x for x in cells[LONG_COLUMN:])
+                        fout.write(row + '\n')
+                    ids.add(id)
     difference = sc_ids.difference(ids)
     difference.discard('')
     difference.discard('school_id')
@@ -83,16 +103,9 @@ def out_sc_file(env_path, out_file_path, sc_ids):
     return ids
 
 
-def to_private_school_ids(env_path):
-    private_school_ids = set()
-    with open(env_path + '/private_schools.csv') as fin:
-        for line in fin:
-            cells = line.split(',')
-            private_school_ids.add(cells[2][1:-1])
-    return private_school_ids
-
-
 def path_env(fips):
+    if test_env_path:
+        return test_env_path
     return conf.pattern_env.format(state=fips[:2])
 
 
@@ -107,34 +120,32 @@ def out_file_name(code, name):
 
 
 def out_pp_file(env_path, in_file_paths, mapper, out_file_path):
-    print('writing', os.path.abspath(out_file_path))
-    private_school_ids = to_private_school_ids(env_path)
-    # print(len(private_school_ids), private_school_ids)
     HID_COLUMN = 7
     RELP_COLUMN = 17
     SCHOOL_COLUMN = 26
     WORKPLACE_COLUMN = 27
+    AGE_COLUMN = 14
     hid2cnt = {}
     hids = set()
     wp_ids = set()
     sc_ids = set()
-    skips = 0
     aid.mkdir(out_file_path)
     with open(out_file_path, 'w') as fout:
+        file_count = 0
+        print('writing', os.path.abspath(out_file_path))
         for in_file_path in in_file_paths:
             with open(in_file_path, 'r') as fin:
                 print('reading', in_file_path)
                 for line in fin:
                     cells = line.rstrip('\n').split(',')
                     if line.startswith('RT'):
+                        file_count += 1
+                        if file_count > 1:
+                            continue
                         cells.append('sporder')
                     school_id = cells[SCHOOL_COLUMN]
-                    age = cells[RELP_COLUMN - 3]
-                    if school_id in private_school_ids:
-                        # print('Skipped due to private school ID =', school_id, ':', line.rstrip('\n'))
-                        skips += 1
-                        continue
-                    elif school_id and age != 'AGEP':
+                    age = cells[AGE_COLUMN]
+                    if school_id and age != 'AGEP':
                         if int(age) > 19:
                             print('Skipped due to too old at age of ' + age + ' to go to school ID =', school_id, ':', line.rstrip('\n'))
                             continue
@@ -148,18 +159,17 @@ def out_pp_file(env_path, in_file_paths, mapper, out_file_path):
                     hid2cnt[hid] = order
                     workplace_id = cells[WORKPLACE_COLUMN]
                     wp_ids.add(workplace_id)
-                    row = ','.join([mapper(x) for x in cells])
+                    row = ','.join(mapper(x) for x in cells)
                     fout.write(row + "\n")
-    print('Skipped', skips, 'rows due to private schools')
     return hid2cnt.keys() | set(), sc_ids, wp_ids
 
 
 def out_ref_hh_file(in_file_paths, mapper, out_file_path):
-    print('writing', os.path.abspath(out_file_path))
     HID_COLUMN = 7
     result = set()
     aid.mkdir(out_file_path)
     with open(out_file_path, 'w') as fout:
+        print('writing', os.path.abspath(out_file_path))
         for in_file_path in in_file_paths:
             print('reading', in_file_path)
             with open(in_file_path, 'r') as fin:
@@ -168,30 +178,40 @@ def out_ref_hh_file(in_file_paths, mapper, out_file_path):
                     if len(cells) <= HID_COLUMN:
                         print(line)
                     result.add(cells[HID_COLUMN])
-                    row = ','.join([mapper(x) for x in cells])
+                    row = ','.join(mapper(x) for x in cells)
                     fout.write(row)
     return result
 
 
 def out_hh_file(in_file_paths, mapper, out_file_path):
-    print('writing', os.path.abspath(out_file_path))
     RELP_COLUMN = 17
     aid.mkdir(out_file_path)
     with open(out_file_path, 'w') as fout:
+        print('writing', os.path.abspath(out_file_path))
+        file_count = 0
         for in_file_path in in_file_paths:
             print('reading', in_file_path)
             with open(in_file_path, 'r') as fin:
                 for line in fin:
                     cells = line.split(',')
                     relate = cells[RELP_COLUMN]
+                    if relate == 'RELP':
+                        file_count += 1
+                        if file_count > 1:
+                            continue
                     if relate == '0' or relate == 'RELP':
-                        mapped_cells = [mapper(x) for x in cells]
+                        mapped_cells = (mapper(x) for x in cells)
                         row = ','.join(mapped_cells)
                         fout.write(row)
 
 
 def test():
     import filecmp
+    path_us = 'spew_sample/usa'
+    prefix2csvs[conf.hh_prefix] = [path_us + '/household_01077010100.csv', path_us + '/hh_header.csv']
+    prefix2csvs[conf.pp_prefix] = [path_us + '/people_01077010100.csv', path_us + '/pp_header.csv']
+    global test_env_path
+    test_env_path = path_us + '/env'
     translate('01077010100')
     actual = '../populations/2010_ver1_01077'
     expected = './expected/2010_ver1_01077'
@@ -210,3 +230,7 @@ def same_files(dcmp):
     missing = expected_files.difference(actual_files)
     if missing:
         raise Exception('Missing files: ' + str(missing))
+
+
+if __name__ == "__main__":
+    test()

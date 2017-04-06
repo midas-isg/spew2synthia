@@ -11,6 +11,6 @@ canada.test()
 #us.test()
 spew.test()
 
-#state.test()
+state.test()
 #county.test()
 #country.test()

@@ -66,9 +66,9 @@ def save_pp_as_text_with_reordering_columns(pp_csv):
     # MODE,OCC,POB,RELIGION,sex, sp_id,sporder,dummy,sex,age
     # text columns (output):
     # sp_id,sp_hh_id,serialno,stcotrbg,age,sex,race,sporder,relate,sp_school_id,sp_work_id,AGEGRP
-    #aid.reorder(pp_csv, [16, 4, 1, 3, 18, 19, 18, 17, 18, 18, 18, 7])
+    aid.reorder(pp_csv, [16, 4, 1, 3, 18, 19, 18, 17, 18, 18, 18, 7])
     # sp_id,sp_hh_id,serialno,stcotrbg,age,sex,race,sporder,relate,sp_school_id,sp_work_id
-    aid.reorder(pp_csv, [16, 4, 1, 3, 20, 19, 18, 17, 18, 18, 18])
+    #aid.reorder(pp_csv, [16, 4, 1, 3, 20, 19, 18, 17, 18, 18, 18])
 
 
 def synth_file_name(code, type):

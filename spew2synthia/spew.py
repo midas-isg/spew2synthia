@@ -1,7 +1,7 @@
 import glob
 import conf
 ISO3_CANADA = 'can'
-
+test_pattern = None
 
 def find_csvs_by_iso3_and_prefix(iso3, prefix):
     path = find_country_by_iso3(iso3)
@@ -48,6 +48,8 @@ def find_csvs(prefix, fips):
 
 def _find_csvs_by_state_and_prefix(state, prefix):
     pattern = conf.pattern_csv.format(state=state, prefix=prefix)
+    if test_pattern:
+        pattern = test_pattern.format(state=state, prefix=prefix)
     print("Finding", pattern)
     files = glob.glob(pattern, recursive=True)
     if not files:
@@ -58,6 +60,8 @@ def _find_csvs_by_state_and_prefix(state, prefix):
 
 
 def test():
+    global test_pattern
+    test_pattern = 'spew_sample/usa/{prefix}*.csv'
     county = '01077'
     county_hh_csvs = find_csvs(conf.hh_prefix, county)
     county_pp_csvs = find_csvs(conf.pp_prefix, county)

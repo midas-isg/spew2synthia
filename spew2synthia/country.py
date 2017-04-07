@@ -44,5 +44,5 @@ def test():
 
 
 if __name__ == "__main__":
-    translate([spew.ISO3_CANADA])
     translate(spew.find_ipums_countries_ids())
+    translate([spew.ISO3_CANADA])

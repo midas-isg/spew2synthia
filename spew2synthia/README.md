@@ -5,8 +5,8 @@
 - read access to path /mnt/lustre0/machines/data.olympus.psc.edu/srv/apache/data/syneco/spew_1.2.0
 
 ## Stack
-- Python
-- Shapely
+- **Python**[tested with 3.5.1]
+- **Shapely**: to translate from [WKB](https://en.wikipedia.org/wiki/Well-known_text#Well-known_binary)to Latitude and Longitude. [tested with 1.5.17]
 
 ## Run on spew.olympus.psc.edu
 To load python:
@@ -46,8 +46,8 @@ Note:
   - All stdout of each state will be logged into file <state FIPS #>/<county FIPS #>.out. *Note:* if the .out file exists, the script will skip the county.
   - If there is any error, it will be logged into file <state FIPS #>/<county FIPS #>.err.
 
-### For other countries (using IPUMS)
-To translate all countries using IPUMS data sources:
+### For other countries (excluding USA)
+To translate all countries using IPUMS and Canada data sources:
 
 `python3 country.py`
 

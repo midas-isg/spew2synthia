@@ -8,7 +8,7 @@ import us
 
 canada.test()
 #ipums.test()
-#us.test()
+us.test()
 spew.test()
 
 state.test()

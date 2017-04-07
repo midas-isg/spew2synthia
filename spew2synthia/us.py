@@ -40,7 +40,7 @@ def find_csvs(prefix, fips):
     result = prefix2csvs.get(prefix, None)
     if result:
         return result
-    return spew.find_csvs(fips, prefix)
+    return spew.find_csvs(prefix, fips)
 
 
 def out_wp_file(env_path, out_file_path, wp_ids):

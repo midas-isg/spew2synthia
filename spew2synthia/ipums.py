@@ -21,6 +21,11 @@ def translate(iso3):
         raise Exception('Household IDs from people and household input files are different:' + str(difference))
     hh_csv = synth_file_name(code, 'households')
     out_hh_file(pp_csvs, spew.hh_mapper, hh_csv)
+    # csv columns (input):
+    # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
+    # latitude,AGE,SEX,RACE,SCHOOL, INCTOT,SYNTHETIC_PID
+    # text columns (output):
+    # sp_id,serialno,stcotrbg,hh_race,hh_income,hh_size,hh_age,latitude,longitude
     aid.reorder(hh_csv, [9, 3, 8, 14, 16, 4, 12, 11, 10])
 
     aid.touch_file(out_file_name(code, 'schools').replace('.csv', '.txt'))

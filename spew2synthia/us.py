@@ -14,14 +14,28 @@ def translate(fips):
 
     pp_csv = synth_file_name(code, 'people')
     (hh_ids, sc_ids, wp_ids) = out_pp_file(env_path, pp_csvs, spew.pp_mapper, pp_csv)
+    # csv columns (input):
+    # RT,TYPE,SERIALNO,puma_id,HINCP, NP,place_id,SYNTHETIC_HID,longitude,latitude,
+    # RT,puma_id,ST,SEX,AGEP, SCH,SCHG,RELP,HISP,ESR,
+    # PINCP,NATIVITY,OCCP,POBP,RAC1P, SYNTHETIC_PID,school_id,workplace_id+sporder
+    # text columns (output):
+    # sp_id,sp_hh_id,serialno,stcotrbg,age,sex,race,sporder,relate,sp_school_id,sp_work_id
     aid.reorder(pp_csv, [26, 8, 3, 7, 15, 14, 25, 29, 18, 27, 28])
 
     sc_csv = out_file_name(code, 'schools')
     out_sc_file(env_path, sc_csv, sc_ids)
+    # csv columns (input):
+    # "","School","ID","CoNo","StNo", "Long","Lat","Low","High","Students"
+    # text columns (output):
+    # sp_id,name,stabbr,"","",county,"","","",total,"","","","",latitude,longitude,"",""
     aid.reorder(sc_csv, [3, 2, 5, 1, 1, 4, 1, 1, 1, 10, 1, 1, 1, 1, 7, 6, 1, 1])  # missing variables used 1
 
     wp_csv = out_file_name(code, 'workplaces')
     out_wp_file(env_path, wp_csv, wp_ids)
+    # csv columns (input):
+    # longitude,latitude,"","workplace_id","stcotr", "employees","placed","wkb_geometry"
+    # text columns (output):
+    # sp_id,workers,latitude,longitude
     aid.reorder(wp_csv, [4, 6, 2, 1])
 
     ref_hh_ids = out_ref_hh_file(find_csvs(conf.hh_prefix, fips), spew.hh_mapper, os.devnull)
@@ -30,6 +44,12 @@ def translate(fips):
         raise Exception('Household IDs from people and household input files are different:' + str(difference))
     hh_csv = synth_file_name(code, 'households')
     out_hh_file(pp_csvs, spew.hh_mapper, hh_csv)
+    # csv columns (input):
+    # RT,TYPE,SERIALNO,puma_id,HINCP, NP,place_id,SYNTHETIC_HID,longitude,latitude,
+    # RT,puma_id,ST,SEX,AGEP, SCH,SCHG,RELP,HISP,ESR,
+    # PINCP,NATIVITY,OCCP,POBP,RAC1P, SYNTHETIC_PID,school_id,workplace_id
+    # text columns (output):
+    # sp_id,serialno,stcotrbg,hh_race,hh_income,hh_size,hh_age,latitude,longitude
     aid.reorder(hh_csv, [8, 3, 7, 25, 5, 6, 15, 10, 9])
 
     aid.touch_file(synth_file_name(code, 'gq').replace('.csv', '.txt'))

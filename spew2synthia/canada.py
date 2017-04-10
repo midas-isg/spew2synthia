@@ -52,6 +52,9 @@ def translate(iso3):
 
 
 def save_hh_as_text_with_reordering_columns(hh_csv):
+    # original after mapped:
+    # SERIALNO,puma_id,place_id,SYNTHETIC_HID,longitude, latitude,AGEGRP,HRSWRK,IMMSTAT,INCTAX,
+    # MODE,OCC,POB,RELIGION,SEX, SYNTHETIC_PID+dummy
     # csv columns (input):
     # serialno,puma_id,stcotrbg,sp_id,longitude, latitude,AGEGRP,HRSWRK,IMMSTAT,hh_income,
     # MODE,OCC,POB,RELIGION,SEX, SYNTHETIC_PID,dummy,sex

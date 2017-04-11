@@ -1,4 +1,5 @@
 from datetime import datetime
+from itertools import cycle
 import os
 import sys
 import subprocess
@@ -49,3 +50,9 @@ def log_error(e):
                                      e, e.__traceback__)
     for tb in tbs:
         print(tb, file=sys.stderr, flush=True)
+
+
+#
+def str_cycle(iter):
+    return cycle(str(x) for x in iter)
+

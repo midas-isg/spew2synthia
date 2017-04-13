@@ -125,7 +125,7 @@ def out_pp_file(in_file_paths, mapper, pp_path, gq_path):
     aid.mkdir(pp_path)
     aid.mkdir(gq_path)
     with open(pp_path, 'w') as pp_csv, open(gq_path, 'w') as gq_csv:
-        print('writing', os.path.abspath(pp_path))
+        print('writing', os.path.abspath(pp_path), os.path.abspath(gq_path))
         file_count = 0
         for in_file_path in in_file_paths:
             with open(in_file_path, 'r') as fin:
@@ -186,7 +186,7 @@ def out_hh_file(in_file_paths, mapper, hid2hincome, out_file_path, gq_path):
     aid.mkdir(out_file_path)
     hids = set()
     with open(out_file_path, 'w') as fout, open(gq_path, 'w') as gq_csv:
-        print('writing', os.path.abspath(out_file_path))
+        print('writing', os.path.abspath(out_file_path), os.path.abspath(gq_path))
         file_count = 0
         for in_file_path in in_file_paths:
             with open(in_file_path, 'r') as fin:
@@ -197,7 +197,6 @@ def out_hh_file(in_file_paths, mapper, hid2hincome, out_file_path, gq_path):
                         file_count += 1
                         if file_count == 1:
                             row = ','.join(cells) + ',made-age,made-race,made-income,made-empty'
-                            #row = ','.join(mapper(x) for x in cells) + ',hh_age,hh_race,hh_income,dummy'
                             aid.write_and_check_number_of_columns(fout, row, columns)
                             aid.write_and_check_number_of_columns(gq_csv, row, columns)
                         continue

@@ -88,7 +88,7 @@ def synth_file_name(code, type):
 
 
 def out_file_name(code, name):
-    out = '../populations'
+    out = 'populations'
     prefix = '/spew_1.2.0_' + code
     return out + prefix + prefix + '_' + name + '.csv'
 
@@ -200,6 +200,7 @@ def out_hh_file(in_file_paths, mapper, out_file_path):
                         row = ','.join(mapped_cells)
                         fout.write(row + '\n')
 
+
 def testCycle(int_range):
     c = aid.str_cycle(int_range)
     for _ in range(0, 20):
@@ -212,7 +213,7 @@ def test():
     prefix2csvs[conf.pp_prefix] = ['spew_sample/can/people_4620440.00.csv']
     import filecmp
     translate('can')
-    actual = '../populations/spew_1.2.0_can'
+    actual = './populations/spew_1.2.0_can'
     expected = './expected/spew_1.2.0_can'
     dcmp = filecmp.dircmp(actual, expected)
     same_files(dcmp)

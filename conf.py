@@ -16,8 +16,7 @@ pp_map = {'SERIALNO':'serialno',    # us, ca & ipums
           # ca
           'AGE': 'age',   # ipums
           'RELP': 'relate',     # us
-          # ca
-          'PERNUM': 'relate',   # ipums
+          # ca & ipums
           'RAC1P': 'race',    # us
           # ca
           'RACE': 'race',    # ipums
@@ -41,8 +40,7 @@ hh_map = {'SERIALNO':'serialno',    # us, ca & ipums
           # ca
           'AGE': 'hh_age',   # ipums
           'RELP': 'relate',     # us
-          # ca
-          'PERNUM': 'relate',   # ipums
+          # ca & ipums
           'RAC1P': 'hh_race',    # us
           # ca
           'RACE': 'hh_race'    # ipums

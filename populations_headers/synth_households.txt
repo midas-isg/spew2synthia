@@ -1,0 +1,1 @@
+sp_id,serialno,stcotrbg,hh_race,hh_income,hh_size,hh_age,latitude,longitude

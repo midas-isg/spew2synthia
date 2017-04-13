@@ -1,38 +1,97 @@
-import glob
 import os
+import sys
 
 import aid
 import conf
 import spew
-
+prefix2csvs = {}
+age2agep = {
+    '100': '99'
+}
+race2rac1p = {
+    '10': '1',
+    '20': '2',
+    '21': '2',
+    '22': '2',
+    '23': '2',
+    '24': '2',
+    '30': '3',
+    '31': '3',
+    '40': '6',
+    '41': '6',
+    '42': '6',
+    '43': '6',
+    '44': '6',
+    '45': '6',
+    '46': '6',
+    '47': '6',
+    '48': '6',
+    '49': '6',
+    '50': '9',
+    '51': '9',
+    '52': '9',
+    '53': '9',
+    '54': '9',
+    '55': '9',
+    '60': '8',
+    '61': '8',
+    '99': '8'
+}
 
 def translate(iso3):
     code = iso3
-    pp_csvs = spew.find_csvs_by_iso3_and_prefix(iso3, conf.pp_prefix)
+    pp_csvs = find_csvs_by_iso3_and_prefix(iso3, conf.pp_prefix)
 
     pp_csv = synth_file_name(code, 'people')
-    (hh_ids, sc_ids, wp_ids) = out_pp_file(pp_csvs, spew.pp_mapper, pp_csv)
-    aid.reorder(pp_csv, [17, 9, 3, 8, 12, 13, 14, 18, 7, 15, 15]) # TODO sp_work_id using sp_school_id
+    gq_pp_csv = synth_file_name(code, 'gq_people')
+    (hh_ids, sc_ids, wp_ids, hid2hincome) = out_pp_file(pp_csvs, spew.pp_mapper, pp_csv, gq_pp_csv)
+    save_pp_as_text_with_reordering_columns(pp_csv, gq_pp_csv)
 
-
-    ref_hh_ids = out_ref_hh_file(spew.find_csvs_by_iso3_and_prefix(iso3, conf.hh_prefix), spew.hh_mapper, os.devnull)  # out_file_name('ref_hh'))
+    ref_hh_ids = out_ref_hh_file(find_csvs_by_iso3_and_prefix(iso3, conf.hh_prefix))
     difference = hh_ids.difference(ref_hh_ids)
     if difference:
         raise Exception('Household IDs from people and household input files are different:' + str(difference))
     hh_csv = synth_file_name(code, 'households')
-    out_hh_file(pp_csvs, spew.hh_mapper, hh_csv)
-    # csv columns (input):
-    # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
-    # latitude,AGE,SEX,RACE,SCHOOL, INCTOT,SYNTHETIC_PID
-    # text columns (output):
-    # sp_id,serialno,stcotrbg,hh_race,hh_income,hh_size,hh_age,latitude,longitude
-    aid.reorder(hh_csv, [9, 3, 8, 14, 16, 4, 12, 11, 10])
+    gq_csv = synth_file_name(code, 'gq')
+    out_hh_file(pp_csvs, spew.hh_mapper, hid2hincome, hh_csv, gq_csv)
+    save_hh_as_text_with_reordering_columns(hh_csv, gq_csv)
 
     aid.touch_file(out_file_name(code, 'schools').replace('.csv', '.txt'))
     aid.touch_file(out_file_name(code, 'workplaces').replace('.csv', '.txt'))
-    aid.touch_file(synth_file_name(code, 'gq').replace('.csv', '.txt'))
-    aid.touch_file(synth_file_name(code, 'gq_people').replace('.csv', '.txt'))
 
+
+def save_pp_as_text_with_reordering_columns(pp_csv, gq_pp_csv):
+    # csv columns (input):
+    # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
+    # latitude,AGE,SEX,RACE,SCHOOL, INCTOT,SYNTHETIC_PID+made-sporder,made-age,made-empty,
+    # made-race
+    # text columns (output):
+    # sp_id,sp_hh_id,serialno,stcotrbg,age,sex,race,sporder,relate,sp_school_id,sp_work_id
+    aid.reorder_and_verify_header(pp_csv, [17, 9, 3, 8, 19, 13, 21, 18, 20, 20, 20], 'synth_people.txt-ipums')
+    # text columns (output):
+    # sp_id,sp_gq_id,sporder,age,sex
+    aid.reorder_and_verify_header(gq_pp_csv, [17, 9, 18, 19, 13], 'synth_gq_people.txt-ipums')
+
+
+def save_hh_as_text_with_reordering_columns(hh_csv, gq_csv):
+    # csv columns (input):
+    # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
+    # latitude,AGE,SEX,RACE,SCHOOL, INCTOT,SYNTHETIC_PID+made-age,made-race,made-income,
+    # made-empty
+    # text columns (output):
+    # sp_id,serialno,stcotrbg,hh_race,hh_income,hh_size,hh_age,latitude,longitude
+    aid.reorder_and_verify_header(hh_csv, [9, 3, 8, 19, 20, 4, 18, 11, 10], 'synth_households.txt-ipums')
+    # text columns (output):
+    # sp_id,dummy,hh_size,stcotrbg,latitude,longitude
+    # sp_id,gq_type,persons,stcotrbg,latitude,longitude
+    aid.reorder_and_verify_header(gq_csv, [9, 21, 4, 8, 11, 10], 'synth_gq.txt-ipums')
+
+
+def find_csvs_by_iso3_and_prefix(iso3, prefix):
+    result = prefix2csvs.get(prefix, None)
+    if result:
+        return result
+    return spew.find_csvs_by_iso3_and_prefix(iso3, prefix)
 
 
 def synth_file_name(code, type):
@@ -40,26 +99,33 @@ def synth_file_name(code, type):
 
 
 def out_file_name(code, name):
-    out = '../populations'
+    out = 'populations'
     prefix = '/spew_1.2.0_' + code
     return out + prefix + prefix + '_' + name + '.csv'
 
 
-def out_pp_file(in_file_paths, mapper, out_file_path):
+def to_agep(age):
+    return age2agep.get(age, age)
+
+
+def out_pp_file(in_file_paths, mapper, pp_path, gq_path):
     # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
-    # latitude,AGE,SEX,RACE,SCHOOL, INCTOT,SYNTHETIC_PID+sporder
-    print('writing', os.path.abspath(out_file_path))
+    # latitude,AGE,SEX,RACE,SCHOOL, INCTOT,SYNTHETIC_PID+made-sporder,made-age,made-empty,
+    # made-race
+    HHTYPE_COLUMN = 5
     HID_COLUMN = 8
-    RELP_COLUMN = 6
-    SCHOOL_COLUMN = 14
-    WORKPLACE_COLUMN = 0
+    AGE_COLUMN = 11
+    RACE_COLUMN = 13
+    INCTOT_COLUMN = 15
+    columns = 21
     hid2cnt = {}
-    hids = set()
+    hid2hincome = {}
     wp_ids = set()
     sc_ids = set()
-    skips = 0
-    aid.mkdir(out_file_path)
-    with open(out_file_path, 'w') as fout:
+    aid.mkdir(pp_path)
+    aid.mkdir(gq_path)
+    with open(pp_path, 'w') as pp_csv, open(gq_path, 'w') as gq_csv:
+        print('writing', os.path.abspath(pp_path))
         file_count = 0
         for in_file_path in in_file_paths:
             with open(in_file_path, 'r') as fin:
@@ -68,76 +134,100 @@ def out_pp_file(in_file_paths, mapper, out_file_path):
                     cells = line.rstrip('\n').split(',')
                     if line.startswith('COUNTRY'):
                         file_count += 1
-                        if file_count > 1:
-                            continue
-                        cells.append('sporder')
-                    school_id = cells[SCHOOL_COLUMN]
-                    sc_ids.add(school_id)
+                        if file_count == 1:
+                            cells.append('made-sporder,made-age,made-empty,made-race')
+                            row = ','.join(cells)
+                            aid.write_and_check_number_of_columns(pp_csv, row, columns)
+                            aid.write_and_check_number_of_columns(gq_csv, row, columns)
+                        continue
                     hid = cells[HID_COLUMN]
-                    if cells[RELP_COLUMN] == '0':
-                        hids.add(hid)
-                    order = hid2cnt.get(hid, 0)
-                    order += 1
-                    cells.append(str(order))
+                    order = hid2cnt.get(hid, 0) + 1
                     hid2cnt[hid] = order
-                    #workplace_id = cells[WORKPLACE_COLUMN]
-                    #wp_ids.add(workplace_id)
-                    row = ','.join([mapper(x) for x in cells])
-                    fout.write(row + "\n")
-    print('Skipped', skips, 'rows due to private schools')
-    return hid2cnt.keys() | set(), sc_ids, wp_ids
+                    income = int('0' + cells[INCTOT_COLUMN])
+                    hid2hincome[hid] = hid2hincome.get(hid, 0) + income
+                    cells.append(str(order))
+                    age = cells[AGE_COLUMN]
+                    cells.append(to_agep(age))
+                    cells.append('')
+                    race = cells[RACE_COLUMN]
+                    cells.append(str(race2rac1p.get(race, race)))
+                    row = ','.join(cells)
+                    htype = cells[HHTYPE_COLUMN]
+                    if htype == '11':
+                        aid.write_and_check_number_of_columns(gq_csv, row, columns)
+                    else:
+                        aid.write_and_check_number_of_columns(pp_csv, row, columns)
+    return hid2cnt.keys() | set(), sc_ids, wp_ids, hid2hincome
 
 
-def out_ref_hh_file(in_file_paths, mapper, out_file_path):
+def out_ref_hh_file(in_file_paths):
     # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude, latitude
-    print('writing', os.path.abspath(out_file_path))
     HID_COLUMN = 8
-    result = set()
-    aid.mkdir(out_file_path)
-    with open(out_file_path, 'w') as fout:
-        for in_file_path in in_file_paths:
+    hids = set()
+    for in_file_path in in_file_paths:
+        with open(in_file_path, 'r') as fin:
             print('reading', in_file_path)
-            with open(in_file_path, 'r') as fin:
-                for line in fin:
-                    cells = line.split(',')
-                    if len(cells) <= HID_COLUMN:
-                        print(line)
-                    result.add(cells[HID_COLUMN])
-                    row = ','.join([mapper(x) for x in cells])
-                    fout.write(row)
-    return result
+            for line in fin:
+                cells = line.split(',')
+                hids.add(cells[HID_COLUMN])
+    return hids
 
 
-def out_hh_file(in_file_paths, mapper, out_file_path):
+def out_hh_file(in_file_paths, mapper, hid2hincome, out_file_path, gq_path):
     # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
-    # latitude,AGE,SEX,RACE,SCHOOL, INCTOT,SYNTHETIC_PID
-    print('writing', os.path.abspath(out_file_path))
+    # latitude,AGE,SEX,RACE,SCHOOL, INCTOT,SYNTHETIC_PID+made-age,made-race,made-income,
+    # made-empty
+    PERSONS_COLUMN = 3
+    HHTYPE_COLUMN = 5
     HID_COLUMN = 8
+    AGE_COLUMN = 11
+    RACE_COLUMN = 13
+    columns = 21
     aid.mkdir(out_file_path)
     hids = set()
-    with open(out_file_path, 'w') as fout:
+    with open(out_file_path, 'w') as fout, open(gq_path, 'w') as gq_csv:
+        print('writing', os.path.abspath(out_file_path))
         file_count = 0
         for in_file_path in in_file_paths:
-            print('reading', in_file_path)
             with open(in_file_path, 'r') as fin:
+                print('reading', in_file_path)
                 for line in fin:
+                    cells = line.strip('\n').split(',')
                     if line.startswith('COUNTRY'):
                         file_count += 1
-                        if file_count > 1:
-                            continue
-                    cells = line.split(',')
+                        if file_count == 1:
+                            row = ','.join(cells) + ',made-age,made-race,made-income,made-empty'
+                            #row = ','.join(mapper(x) for x in cells) + ',hh_age,hh_race,hh_income,dummy'
+                            aid.write_and_check_number_of_columns(fout, row, columns)
+                            aid.write_and_check_number_of_columns(gq_csv, row, columns)
+                        continue
                     hid = cells[HID_COLUMN]
-                    if hid not in hids or hid == 'SYNTHETIC_HID':
+                    if hid not in hids:
                         hids.add(hid)
-                        mapped_cells = [mapper(x) for x in cells]
-                        row = ','.join(mapped_cells)
-                        fout.write(row)
+                        age = cells[AGE_COLUMN]
+                        cells.append(to_agep(age))
+                        race = cells[RACE_COLUMN]
+                        cells.append(str(race2rac1p.get(race, race)))
+                        cells.append(str(hid2hincome[hid]))
+                        cells.append('')
+                        row = ','.join(cells)
+                        htype = cells[HHTYPE_COLUMN]
+                        if htype == '11':
+                            aid.write_and_check_number_of_columns(gq_csv, row, columns)
+                        else:
+                            aid.write_and_check_number_of_columns(fout, row, columns)
+                        persons = cells[PERSONS_COLUMN]
+                        if int(persons) > 20:
+                            msg = 'Warning: max persons according to NP is 20 but got'
+                            print(msg, persons, ':', row, file=sys.stderr, flush=True)
 
 
 def test():
     import filecmp
+    prefix2csvs[conf.hh_prefix] = ['spew_sample/fji/household_ra.csv']
+    prefix2csvs[conf.pp_prefix] = ['spew_sample/fji/people_ra.csv']
     translate('fji')
-    actual = '../populations/spew_1.2.0_fji'
+    actual = './populations/spew_1.2.0_fji'
     expected = './expected/spew_1.2.0_fji'
     dcmp = filecmp.dircmp(actual, expected)
     same_files(dcmp)

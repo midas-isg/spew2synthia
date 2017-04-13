@@ -1,0 +1,3 @@
+sp_id,sp_gq_id,sporder,age,sex
+ra-5-19,ra-5,1,60,1
+ra-5-20,ra-5,2,24,1

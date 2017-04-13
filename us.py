@@ -134,7 +134,7 @@ def synth_file_name(code, type):
 
 
 def out_file_name(code, name):
-    out = '../populations'
+    out = 'populations'
     prefix = '/2010_ver1_' + code
     return out + prefix + prefix + '_' + name + '.csv'
 
@@ -233,7 +233,7 @@ def test():
     global test_env_path
     test_env_path = path_us + '/env'
     translate('01077010100')
-    actual = '../populations/2010_ver1_01077'
+    actual = './populations/2010_ver1_01077'
     expected = './expected/2010_ver1_01077'
     dcmp = filecmp.dircmp(actual, expected)
     same_files(dcmp)

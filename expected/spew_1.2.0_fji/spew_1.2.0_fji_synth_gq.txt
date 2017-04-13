@@ -1,0 +1,2 @@
+sp_id,gq_type,persons,stcotrbg,latitude,longitude
+ra-5,,2,ra,-17.5173606559857,178.172033716168

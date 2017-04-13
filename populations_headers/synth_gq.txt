@@ -1,0 +1,1 @@
+sp_id,gq_type,persons,stcotrbg,latitude,longitude

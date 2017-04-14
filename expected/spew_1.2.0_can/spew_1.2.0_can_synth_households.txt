@@ -1,2 +1,2 @@
-sp_id,serialno,stcotrbg,dummy,hh_income,dummy,dummy,latitude,longitude
+sp_id,serialno,stcotrbg,hh_race,hh_income,hh_size,hh_age,latitude,longitude
 4620440.00-1,14331,4620440.00,,1,,,45.4324901538856,-73.7431907828645

@@ -19,8 +19,22 @@ def make_path(path):
     return path
 
 
+def touch_require_file(code, record_type):
+    touch_file(output_csv_file_path(code, record_type).replace('.csv', '.txt'))
+
+
 def touch_file(filename):
     open(filename, 'a').close()
+
+
+def output_csv_synth_file_path(code, record_type):
+    return output_csv_file_path(code, 'synth_' + record_type)
+
+
+def output_csv_file_path(code, name):
+    out = 'populations'
+    prefix = '/spew_1.2.0_' + code
+    return out + prefix + prefix + '_' + name + '.csv'
 
 
 def reorder_and_check_header(csv, columns, header_filename):

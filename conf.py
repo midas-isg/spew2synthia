@@ -45,11 +45,3 @@ hh_map = {'SERIALNO':'serialno',    # us, ca & ipums
           # ca
           'RACE': 'hh_race'    # ipums
           }
-wp_map = {'"workplace_id"': 'sp_id','"employees"': 'workers'}
-sc_map = {'"School"': 'name',
-          '"ID"': 'sp_id',
-          '"CoNo"':'county', # TODO # not name
-          '"StNo"': 'stabbr', # TODO # not abbr
-          '"Long"': 'longitude',
-          '"Lat"':'latitude',
-          '"Students"': 'total'}

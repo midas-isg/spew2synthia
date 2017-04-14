@@ -82,11 +82,3 @@ def hh_mapper(x):
 
 def pp_mapper(x):
     return conf.pp_map.get(x, x)
-
-
-def sc_mapper(x):
-    return conf.sc_map.get(x, x)
-
-
-def wp_mapper(x):
-    return conf.wp_map.get(x, x)

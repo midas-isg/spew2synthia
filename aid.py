@@ -5,7 +5,7 @@ import sys
 import subprocess
 import traceback
 # File System
-########################################################################################################################
+################################################################################
 
 
 def mkdir(out_file_path):
@@ -23,24 +23,28 @@ def touch_file(filename):
     open(filename, 'a').close()
 
 
-def reorder_and_verify_header(csv, columns, header_filename):
+def reorder_and_check_header(csv, columns, header_filename):
     out_file_path = csv.replace('.csv', '.txt')
     print('writing', os.path.abspath(out_file_path))
     header_dir = 'populations_headers/'
     print('reading', csv)
-    with open(csv, 'r') as fin, open(header_dir + header_filename, 'r') as header_file:
+    header_path = header_dir + header_filename
+    with open(csv, 'r') as fin, open(header_path, 'r') as header_file:
         expected = header_file.readline().strip('\n')
         line = fin.readline()
         cells = line.strip('\n').split(',')
         header = ','.join(cells[i - 1] for i in columns)
         if not expected == header:
-            raise Exception(csv, 'must have header of', expected, 'but got', header)
+            raise Exception(csv, 'must have header of', expected,
+                            'but got', header)
     with open(out_file_path, 'w') as f:
         with open(header_dir + header_filename.split('-')[0], 'r') as h:
             f.write(h.readline().strip('\n') + '\n')
             f.flush()
         template = '","'.join(['$' + str(x) for x in columns])
-        subprocess.run(["awk", 'BEGIN { FS = "," } NR >= 2{ print ' + template + '}', csv], stdout=f)
+        subprocess.run(["awk",
+                        'BEGIN { FS = "," } NR >= 2{ print ' + template + '}',
+                        csv], stdout=f)
     delete(csv)
 
 
@@ -59,14 +63,15 @@ def delete(file):
     os.remove(file)
 
 
-def write_and_check_number_of_columns(fout, row, columns):
+def write_and_check_columns(fout, row, columns):
     actual_columns = len(row.split(','))
     if not actual_columns == columns:
         print(flush=True)
-        raise Exception('Expected # columns is', columns, 'but got', actual_columns, ':', row)
+        raise Exception('Expected # columns is', columns, \
+                        'but got', actual_columns, ':', row)
     fout.write(row + "\n")
 # Logs
-########################################################################################################################
+################################################################################
 
 
 def log_time(s=''):
@@ -80,7 +85,7 @@ def log_error(e):
     for tb in tbs:
         print(tb, file=sys.stderr, flush=True)
 # Strings
-########################################################################################################################
+################################################################################
 
 
 def str_cycle(iter):

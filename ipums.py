@@ -38,22 +38,24 @@ race2rac1p = {
     '99': '8'
 }
 
+
 def translate(iso3):
     code = iso3
     pp_csvs = find_csvs_by_iso3_and_prefix(iso3, conf.pp_prefix)
 
     pp_csv = synth_file_name(code, 'people')
     gq_pp_csv = synth_file_name(code, 'gq_people')
-    (hh_ids, sc_ids, wp_ids, hid2hincome) = out_pp_file(pp_csvs, spew.pp_mapper, pp_csv, gq_pp_csv)
+    (hh_ids, sc_ids, wp_ids, hid2hincome) = out_pp_file(pp_csvs, pp_csv, gq_pp_csv)
     save_pp_as_text_with_reordering_columns(pp_csv, gq_pp_csv)
 
     ref_hh_ids = out_ref_hh_file(find_csvs_by_iso3_and_prefix(iso3, conf.hh_prefix))
     difference = hh_ids.difference(ref_hh_ids)
     if difference:
-        raise Exception('Household IDs from people and household input files are different:' + str(difference))
+        txt = 'Household IDs from people and household inputs are different:'
+        raise Exception(txt, difference)
     hh_csv = synth_file_name(code, 'households')
     gq_csv = synth_file_name(code, 'gq')
-    out_hh_file(pp_csvs, spew.hh_mapper, hid2hincome, hh_csv, gq_csv)
+    out_hh_file(pp_csvs, hid2hincome, hh_csv, gq_csv)
     save_hh_as_text_with_reordering_columns(hh_csv, gq_csv)
 
     aid.touch_file(out_file_name(code, 'schools').replace('.csv', '.txt'))
@@ -67,10 +69,10 @@ def save_pp_as_text_with_reordering_columns(pp_csv, gq_pp_csv):
     # made-race
     # text columns (output):
     # sp_id,sp_hh_id,serialno,stcotrbg,age,sex,race,sporder,relate,sp_school_id,sp_work_id
-    aid.reorder_and_verify_header(pp_csv, [17, 9, 3, 8, 19, 13, 21, 18, 20, 20, 20], 'synth_people.txt-ipums')
+    aid.reorder_and_check_header(pp_csv, [17, 9, 3, 8, 19, 13, 21, 18, 20, 20, 20], 'synth_people.txt-ipums')
     # text columns (output):
     # sp_id,sp_gq_id,sporder,age,sex
-    aid.reorder_and_verify_header(gq_pp_csv, [17, 9, 18, 19, 13], 'synth_gq_people.txt-ipums')
+    aid.reorder_and_check_header(gq_pp_csv, [17, 9, 18, 19, 13], 'synth_gq_people.txt-ipums')
 
 
 def save_hh_as_text_with_reordering_columns(hh_csv, gq_csv):
@@ -80,11 +82,11 @@ def save_hh_as_text_with_reordering_columns(hh_csv, gq_csv):
     # made-empty
     # text columns (output):
     # sp_id,serialno,stcotrbg,hh_race,hh_income,hh_size,hh_age,latitude,longitude
-    aid.reorder_and_verify_header(hh_csv, [9, 3, 8, 19, 20, 4, 18, 11, 10], 'synth_households.txt-ipums')
+    aid.reorder_and_check_header(hh_csv, [9, 3, 8, 19, 20, 4, 18, 11, 10], 'synth_households.txt-ipums')
     # text columns (output):
     # sp_id,dummy,hh_size,stcotrbg,latitude,longitude
     # sp_id,gq_type,persons,stcotrbg,latitude,longitude
-    aid.reorder_and_verify_header(gq_csv, [9, 21, 4, 8, 11, 10], 'synth_gq.txt-ipums')
+    aid.reorder_and_check_header(gq_csv, [9, 21, 4, 8, 11, 10], 'synth_gq.txt-ipums')
 
 
 def find_csvs_by_iso3_and_prefix(iso3, prefix):
@@ -108,7 +110,7 @@ def to_agep(age):
     return age2agep.get(age, age)
 
 
-def out_pp_file(in_file_paths, mapper, pp_path, gq_path):
+def out_pp_file(in_file_paths, pp_path, gq_path):
     # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
     # latitude,AGE,SEX,RACE,SCHOOL, INCTOT,SYNTHETIC_PID+made-sporder,made-age,made-empty,
     # made-race
@@ -137,8 +139,8 @@ def out_pp_file(in_file_paths, mapper, pp_path, gq_path):
                         if file_count == 1:
                             cells.append('made-sporder,made-age,made-empty,made-race')
                             row = ','.join(cells)
-                            aid.write_and_check_number_of_columns(pp_csv, row, columns)
-                            aid.write_and_check_number_of_columns(gq_csv, row, columns)
+                            aid.write_and_check_columns(pp_csv, row, columns)
+                            aid.write_and_check_columns(gq_csv, row, columns)
                         continue
                     hid = cells[HID_COLUMN]
                     order = hid2cnt.get(hid, 0) + 1
@@ -154,14 +156,15 @@ def out_pp_file(in_file_paths, mapper, pp_path, gq_path):
                     row = ','.join(cells)
                     htype = cells[HHTYPE_COLUMN]
                     if htype == '11':
-                        aid.write_and_check_number_of_columns(gq_csv, row, columns)
+                        aid.write_and_check_columns(gq_csv, row, columns)
                     else:
-                        aid.write_and_check_number_of_columns(pp_csv, row, columns)
+                        aid.write_and_check_columns(pp_csv, row, columns)
     return hid2cnt.keys() | set(), sc_ids, wp_ids, hid2hincome
 
 
 def out_ref_hh_file(in_file_paths):
-    # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude, latitude
+    # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
+    # latitude
     HID_COLUMN = 8
     hids = set()
     for in_file_path in in_file_paths:
@@ -173,7 +176,7 @@ def out_ref_hh_file(in_file_paths):
     return hids
 
 
-def out_hh_file(in_file_paths, mapper, hid2hincome, out_file_path, gq_path):
+def out_hh_file(in_file_paths, hid2hincome, out_file_path, gq_path):
     # COUNTRY,YEAR,SERIALNO,PERSONS,puma_id, HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
     # latitude,AGE,SEX,RACE,SCHOOL, INCTOT,SYNTHETIC_PID+made-age,made-race,made-income,
     # made-empty
@@ -197,8 +200,8 @@ def out_hh_file(in_file_paths, mapper, hid2hincome, out_file_path, gq_path):
                         file_count += 1
                         if file_count == 1:
                             row = ','.join(cells) + ',made-age,made-race,made-income,made-empty'
-                            aid.write_and_check_number_of_columns(fout, row, columns)
-                            aid.write_and_check_number_of_columns(gq_csv, row, columns)
+                            aid.write_and_check_columns(fout, row, columns)
+                            aid.write_and_check_columns(gq_csv, row, columns)
                         continue
                     hid = cells[HID_COLUMN]
                     if hid not in hids:
@@ -212,9 +215,9 @@ def out_hh_file(in_file_paths, mapper, hid2hincome, out_file_path, gq_path):
                         row = ','.join(cells)
                         htype = cells[HHTYPE_COLUMN]
                         if htype == '11':
-                            aid.write_and_check_number_of_columns(gq_csv, row, columns)
+                            aid.write_and_check_columns(gq_csv, row, columns)
                         else:
-                            aid.write_and_check_number_of_columns(fout, row, columns)
+                            aid.write_and_check_columns(fout, row, columns)
                         persons = cells[PERSONS_COLUMN]
                         if int(persons) > 20:
                             msg = 'Warning: max persons according to NP is 20 but got'

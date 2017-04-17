@@ -1,1 +1,1 @@
-sp_id,name,stabbr,address,city,county,zipcode,zip4,nces_id,total,prek,kinder,gr01_gr1
+sp_id,name,stabbr,address,city,county,zipcode,zip4,nces_id,total,prek,kinder,gr01_gr12,ungraded,latitude,longitude,source,stco

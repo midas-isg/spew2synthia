@@ -27,7 +27,7 @@ combine() {
     #echo ${output}
 }
 
-path=../populations
+path=./populations
 combine $path schools
 combine $path synth_gq
 combine $path synth_gq_people

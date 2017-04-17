@@ -1,4 +1,4 @@
-sp_id,name,stabbr,address,city,county,zipcode,zip4,nces_id,total,prek,kinder,gr01_gr1
+sp_id,name,stabbr,address,city,county,zipcode,zip4,nces_id,total,prek,kinder,gr01_gr12,ungraded,latitude,longitude,source,stco
 "010201000763","ANDERSON JR HIGH SCH","01",,,"77",,,,524.598433921844,,,,,"34.924600","-87.267200",,
 "010201001545","BROOKS ELEM SCH","01",,,"77",,,,941,,,,,"34.863800","-87.529900",,
 "010201000764","BROOKS HIGH SCH","01",,,"77",,,,778,,,,,"34.857600","-87.493900",,

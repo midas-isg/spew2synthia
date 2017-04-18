@@ -2,10 +2,13 @@
 
 module load python/3.5.1
 
-python3 state.py || {
-    python3 county.py
-} || {
-    ./usa_from_states.sh >logs/usa.log 2>logs/usa.err
-}
+echo "translating all states of the USA..."
+python3 state.py
 
-echo DONE!
+echo "translating all counties in all states of the USA..."
+python3 county.py
+
+echo "combinding all states of the USA into a country..."
+./usa_from_states.sh >logs/usa.log 2>logs/usa.err
+
+echo "DONE for USA!"

@@ -62,16 +62,6 @@ def reorder_and_check_header(csv, columns, header_filename):
     delete(csv)
 
 
-def reorder(csv, columns): # TODO to be removed
-    out_file_path = csv.replace('.csv', '.txt')
-    print('writing', os.path.abspath(out_file_path))
-    print('reading', csv)
-    f = open(out_file_path, 'w')
-    template = '","'.join(['$' + str(x) for x in columns])
-    subprocess.run(["awk", 'BEGIN { FS = "," } { print ' + template + '}', csv], stdout=f)
-    delete(csv)
-
-
 def delete(file):
     print('deleting', file)
     os.remove(file)

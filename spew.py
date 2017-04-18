@@ -21,15 +21,13 @@ def find_country_by_iso3(iso3):
     return files[0]
 
 
-def find_all_countries():
+def find_all_countries_except_usa():
     country_outputs = find_countries('*/output')
     return [o.replace('/output', '') for o in country_outputs]
 
 
-def find_ipums_countries_ids():
-    ids = [o.split('/')[-1] for o in find_all_countries()]
-    ids.remove(ISO3_CANADA)
-    return ids
+def find_all_country_ids_except_usa():
+    return [o.split('/')[-1] for o in find_all_countries_except_usa()]
 
 
 def find_countries(iso3):

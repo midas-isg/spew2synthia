@@ -9,6 +9,8 @@ import spew
 
 
 def translate(ids):
+    sys_stderr = sys.stderr
+    sys_stdout = sys.stdout
     print('Started translating countries in', ids)
     log_path = aid.make_path('logs/')
     with open(log_path + 'countries.' + str(datetime.now()), 'w') as common:
@@ -37,12 +39,20 @@ def translate(ids):
                         aid.log_time()
                         sys.stdout = common
                         sys.stderr = common
+    sys.stderr = sys_stderr
+    sys.stdout = sys_stdout
 
 
 def test():
     translate(['fji'])
 
 
+def _create(ids):
+    log_path = aid.make_path('logs/')
+    for iso3 in ids:
+        stdout = log_path + iso3 + '.out'
+        aid.touch_file(stdout)
+
+
 if __name__ == "__main__":
-    translate(spew.find_ipums_countries_ids())
-    translate([spew.ISO3_CANADA])
+    translate(spew.find_all_country_ids_except_usa())

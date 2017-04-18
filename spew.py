@@ -3,6 +3,7 @@ import conf
 ISO3_CANADA = 'can'
 test_pattern = None
 
+
 def find_csvs_by_iso3_and_prefix(iso3, prefix):
     path = find_country_by_iso3(iso3)
     pattern_csv = path + '/**/{prefix}*.csv'
@@ -55,7 +56,8 @@ def _find_csvs_by_state_and_prefix(state, prefix):
     if not files:
         raise Exception('No file starting with ' + prefix)
     state_output = conf.pattern_state_output.format(state=state)
-    print('Found', len(files), [p.replace(state_output + '/', '') for p in files])
+    print('Found', len(files),
+          [p.replace(state_output + '/', '') for p in files])
     return files
 
 
@@ -74,11 +76,3 @@ def check_consistent(csv_list1, csv_list2):
     difference = set1.difference(pp_set)
     if difference:
         raise Exception()
-
-
-def hh_mapper(x):
-    return conf.hh_map.get(x, x)
-
-
-def pp_mapper(x):
-    return conf.pp_map.get(x, x)

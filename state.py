@@ -35,7 +35,6 @@ def translate(states):
                         sys.stderr = common
 
 
-
 def test():
     translate(['56'])
 

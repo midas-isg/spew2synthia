@@ -92,9 +92,9 @@ def _save_pp_as_csv(in_file_paths, pp_path, gq_pp_path):
                     age = cells[age_column]
                     if school_id:
                         if int(age) > 19:
-                            print('Skipped due to too old at age of', age,
+                            print('Warning: too old at age of', age,
                                   'to go to school ID =', school_id, ':', line)
-                            continue
+                            # continue
                     sc_ids.add(school_id)
                     hid = cells[hid_column]
                     if cells[relp_column] == '0':

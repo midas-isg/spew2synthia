@@ -1,3 +1,4 @@
+import csv
 import os
 
 import aid
@@ -6,6 +7,27 @@ import spew
 import wp
 _prefix2csvs = {}
 _test_env_path = None
+
+_relp2relate = {
+    '0': '0',
+    '1': '1',
+    '2': '2',
+    '3': '2',
+    '4': '2',
+    '5': '3',
+    '6': '4',
+    '7': '5',
+    '8': '6',
+    '9': '6',
+    '10': '7',
+    '11': '8',
+    '12': '9',
+    '13': '10',
+    '14': '11',
+    '15': '12',
+    '16': '13',
+    '17': '14'
+}
 
 
 def translate(fips):
@@ -29,10 +51,8 @@ def _translate_pp(pp_csvs, code):
 
 
 def _translate_sc(env_path, sc_ids, code):
-    sc_csv = _output_csv_file_path(code, 'schools')
-    _save_sc_as_csv(env_path, sc_csv, sc_ids)
-    _save_sc_as_txt_with_reordering_columns(sc_csv)
-
+    sc_csv = _output_csv_file_path(code, 'schools').replace('.csv', '.txt')
+    _save_sc_as_txt(env_path, sc_csv, sc_ids)
 
 def _translate_wp(env_path, wp_ids, code):
     wp_csv = _output_csv_file_path(code, 'workplaces')
@@ -62,7 +82,7 @@ def _save_pp_as_csv(in_file_paths, pp_path, gq_pp_path):
     relp_column = 17
     school_column = 26
     workplace_column = 27
-    columns = 29
+    columns = 30
     hid2cnt = {}
     hids = set()
     wp_ids = set()
@@ -83,7 +103,7 @@ def _save_pp_as_csv(in_file_paths, pp_path, gq_pp_path):
                         file_count += 1
                         if file_count > 1:
                             continue
-                        row = line + ',made-sporder'
+                        row = line + ',made-sporder,made-relate'
                         for csv in csvs:
                             aid.write_and_check_columns(csv, row, columns)
                         continue
@@ -97,7 +117,8 @@ def _save_pp_as_csv(in_file_paths, pp_path, gq_pp_path):
                             # continue
                     sc_ids.add(school_id)
                     hid = cells[hid_column]
-                    if cells[relp_column] == '0':
+                    relp = cells[relp_column]
+                    if relp == '0':
                         hids.add(hid)
                     order = hid2cnt.get(hid, 0)
                     order += 1
@@ -105,39 +126,56 @@ def _save_pp_as_csv(in_file_paths, pp_path, gq_pp_path):
                     workplace_id = cells[workplace_column]
                     wp_ids.add(workplace_id)
                     csv = pp_csv if cells[type_column] == '1' else gq_pp_csv
-                    row = line + ',' + str(order)
+                    row = line + ',' + str(order) + ',' + _relp2relate[relp]
                     aid.write_and_check_columns(csv, row, columns)
     return hids, sc_ids, wp_ids
 
 
-def _save_sc_as_csv(env_path, out_file_path, sc_ids):
-    long_column = 5
-    columns = 11
+def _save_sc_as_txt(env_path, out_file_path, sc_ids):
+    columns = 18
     in_file_paths = [env_path + '/public_schools.csv',
-                     env_path + '/private_schools.csv']
+                     env_path + '/private_schools_locs.csv']
     ids = set()
     with open(out_file_path, 'w') as fout:
         print('writing', os.path.abspath(out_file_path))
-        file_count = 0
+        header = 'sp_id,name,stabbr,address,city,' \
+                 'county,zipcode,zip4,nces_id,total,' \
+                 'prek,kinder,gr01_gr12,ungraded,latitude,' \
+                 'longitude,source,stco'
+        aid.write_and_check_columns(fout, header, columns)
+
         for in_file_path in in_file_paths:
             with open(in_file_path) as fin:
                 print('reading', in_file_path)
-                for line in fin:
-                    cells = line.rstrip('\n').split(',')
-                    sc_id = cells[2][1:-1]
-                    if line.startswith('"","School"'):
-                        file_count += 1
-                        if file_count > 1:
-                            continue
-                        row = ','.join(cells) + ',made-empty'
-                        aid.write_and_check_columns(fout, row, columns)
-                    elif sc_id in sc_ids:
-                        cells.append('')
-                        row = ','.join(cells[:long_column])
-                        if len(cells) < columns:
-                            row += ',,'
-                        row += ',' + ','.join(cells[long_column:])
-                        aid.write_and_check_columns(fout, row, columns)
+                reader = csv.DictReader(fin)
+                for row in reader:
+                    sc_id = row['ID']
+                    if sc_id in sc_ids:
+                        fips_st = '{:02}'.format(int(row['StNo']))
+                        fips_co = '{:03}'.format(int(row['CoNo']))
+                        stco = fips_st + fips_co
+                        cells =[
+                            sc_id,
+                            _quote(row['School']),
+                            '',  # row['StNo'],  # correction
+                            '',
+                            '',
+                            '',  #row['CoNo'],   # correction
+                            '',
+                            '',
+                            _quote(sc_id),  # correction
+                            row['Students'],
+                            '',
+                            '',
+                            '',
+                            '',
+                            row['Lat'],
+                            row['Long'],
+                            '"NCES"',   # correction
+                            _quote(stco)  # correction
+                        ]
+                        line = ','.join(cells)
+                        aid.write_and_check_columns(fout, line, columns)
                     ids.add(sc_id)
     difference = sc_ids.difference(ids)
     difference.discard('')
@@ -145,6 +183,10 @@ def _save_sc_as_csv(env_path, out_file_path, sc_ids):
     if difference:
         raise Exception(str(difference) + " are not found!")
     return ids
+
+
+def _quote(text):
+    return '"' + text + '"'
 
 
 def _save_wp_as_csv(env_path, out_file_path, wp_ids):
@@ -225,34 +267,18 @@ def _save_pp_as_txt_with_reordering_columns(pp_csv, gq_pp_csv):
     # 10 RT,puma_id,ST,SEX,AGEP,
     # 15 SCH,SCHG,RELP,HISP,ESR,
     # 20 PINCP,NATIVITY,OCCP,POBP,RAC1P,
-    # 25 SYNTHETIC_PID,school_id,workplace_id+made-sporder
+    # 25 SYNTHETIC_PID,school_id,workplace_id+made-sporder,made-relate
     # text columns (output):
     # sp_id,sp_hh_id,serialno,stcotrbg,age,
     # sex,race,sporder,relate,sp_school_id,
     # sp_work_id
-    pp_columns = [26, 8, 3, 7, 15, 14, 25, 29, 18, 27, 28]
+    pp_columns = [26, 8, 3, 7, 15, 14, 25, 29, 30, 27, 28]
     aid.reorder_and_check_header(pp_csv, pp_columns, 'synth_people.txt-us')
     # text columns (output):
     # sp_id,sp_gq_id,sporder,age,sex
     gp_columns = [26, 8, 29, 15, 14]
     aid.reorder_and_check_header(gq_pp_csv, gp_columns,
                                  'synth_gq_people.txt-us')
-
-
-def _save_sc_as_txt_with_reordering_columns(sc_csv):
-    # csv columns (input):
-    #  0 "","School","ID","CoNo","StNo",
-    #  5 "Long","Lat","Low","High","Students",
-    # 10 made-empty
-    # text columns (output):
-    # sp_id,name,stabbr,address,city,
-    # county,zipcode,zip4,nces_id,total,
-    # prek,kinder,gr01_gr1
-    sc_columns = [3, 2, 5, 11, 11,
-                  4, 11, 11, 11, 10,
-                  11, 11, 11, 11, 7,
-                  6, 11, 11]
-    aid.reorder_and_check_header(sc_csv, sc_columns, 'schools.txt-us')
 
 
 def _save_wp_as_txt_with_reordering_columns(wp_csv):

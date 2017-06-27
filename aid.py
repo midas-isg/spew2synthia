@@ -88,6 +88,10 @@ def log_error(e):
                                      e, e.__traceback__)
     for tb in tbs:
         print(tb, file=sys.stderr, flush=True)
+
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, flush=True, **kwargs)
 # Strings
 ################################################################################
 

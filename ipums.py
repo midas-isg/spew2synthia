@@ -1,9 +1,11 @@
+from collections import OrderedDict
 import os
 import sys
 
 import aid
 import conf
 import spew
+max_hid_len = 30
 prefix2csvs = {}
 age2agep = {
     '100': '99'
@@ -79,16 +81,17 @@ def _save_pp_as_csv(in_file_paths, pp_path, gq_path):
          5 HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
         10 latitude,AGE,SEX,RACE,SCHOOL,
         15 INCTOT,SYNTHETIC_PID+made-sporder,made-age,made-empty,
-        20 made-race """
+        20 made-race,made-hid """
     hhtype_column = 5
     hid_column = 8
     age_column = 11
     race_column = 13
     inctot_column = 15
-    more_header = 'made-sporder,made-age,made-empty,made-race'
-    columns = 21
+    more_header = 'made-sporder,made-age,made-empty,made-race,made-hid'
+    columns = 22
     hid2cnt = {}
     hid2hincome = {}
+    hid2shortened = OrderedDict()
     aid.mkdir(pp_path)
     aid.mkdir(gq_path)
     with open(pp_path, 'w') as pp_csv, open(gq_path, 'w') as gq_csv:
@@ -116,14 +119,57 @@ def _save_pp_as_csv(in_file_paths, pp_path, gq_path):
                         str(order),
                         _to_agep(age),
                         '',
-                        str(race2rac1p.get(race, race))
+                        str(race2rac1p.get(race, race)),
+                        _shorten_hid(hid, max_hid_len, hid2shortened)
                     ])
                     csv = gq_csv if cells[hhtype_column] == '11' else pp_csv
                     aid.write_and_check_columns(csv, row, columns)
                     hid2cnt[hid] = order
                     income = int('0' + cells[inctot_column])
                     hid2hincome[hid] = hid2hincome.get(hid, 0) + income
-    return hid2cnt.keys() | set(), hid2hincome
+    prefix = pp_path.replace('synth_people.csv', '')
+    _save_shortened_hid_mapping(hid2shortened, prefix + 'hid_mapping.csv')
+    hids = hid2cnt.keys() | set()
+    _check_duplicate_shortened_hid(hid2shortened, hids)
+    return hids, hid2hincome
+
+
+def _save_shortened_hid_mapping(hid2shortened, file_path):
+    if not hid2shortened:
+        return
+    with open(file_path, 'w') as mapping:
+        mapping.write('original_hid,shortened_hid\n')
+        for k, v in hid2shortened.items():
+            mapping.write(k + ',' + v + '\n')
+
+
+def _check_duplicate_shortened_hid(hid2shortened, hids):
+    if not hid2shortened:
+        return
+    short2hids = {}
+    for hid, short in hid2shortened.items():
+        short2hids.setdefault(short, set()).add(hid)
+    log_if_not_empty(
+        [short for short, hids in short2hids.items() if len(hids) > 1],
+        'shortened HID duplicates among themselves')
+    log_if_not_empty(
+        [short for hid, short in hid2shortened.items() if short in hids],
+        'shortened HID duplicates with HIDs')
+
+
+def log_if_not_empty(dup, msg):
+    if dup:
+        aid.eprint(msg, dup)
+
+
+def _shorten_hid(hid, n, hid2shorten_hid):
+    hid_len = len(hid)
+    if hid_len <= n:
+        return hid
+    shorten = hid[hid_len - n:]
+    # shorten = hid[:n - hid_len] # for testing
+    hid2shorten_hid[hid] = shorten
+    return shorten
 
 
 def _to_household_ids(in_file_paths):
@@ -146,15 +192,16 @@ def _save_hh_as_csv(in_file_paths, hid2hincome, hh_path, gq_path):
          5 HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
         10 latitude,AGE,SEX,RACE,SCHOOL,
         15 INCTOT,SYNTHETIC_PID+made-age,made-race,made-income,
-        20 made-empty """
+        20 made-empty,made-hid """
     persons_column = 3
     hhtype_column = 5
     hid_column = 8
     age_column = 11
     race_column = 13
-    more_header = 'made-age,made-race,made-income,made-empty'
-    columns = 21
+    more_header = 'made-age,made-race,made-income,made-empty,made-hid'
+    columns = 22
     hids = set()
+    hid2shorten_hid = {}
     aid.mkdir(hh_path)
     aid.mkdir(gq_path)
     with open(hh_path, 'w') as hh_csv, open(gq_path, 'w') as gq_csv:
@@ -184,7 +231,8 @@ def _save_hh_as_csv(in_file_paths, hid2hincome, hh_path, gq_path):
                             _to_agep(age),
                             str(race2rac1p.get(race, race)),
                             str(hid2hincome[hid]),
-                            ''
+                            '',
+                            _shorten_hid(hid, max_hid_len, hid2shorten_hid)
                         ])
                         csv = gq_csv if cells[hhtype_column] == '11' else hh_csv
                         aid.write_and_check_columns(csv, row, columns)
@@ -200,16 +248,16 @@ def _save_pp_as_txt_with_reordering_columns(pp_csv, gq_pp_csv):
      5 HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
     10 latitude,AGE,SEX,RACE,SCHOOL,
     15 INCTOT,SYNTHETIC_PID+made-sporder,made-age,made-empty,
-    20 made-race
+    20 made-race,made-hid
     text columns (output):
     sp_id,sp_hh_id,serialno,stcotrbg,age,
     sex,race,sporder,relate,sp_school_id,
     sp_work_id """
-    pp_columns = [17, 9, 3, 8, 19, 13, 21, 18, 20, 20, 20]
+    pp_columns = [17, 22, 3, 8, 19, 13, 21, 18, 20, 20, 20]
     aid.reorder_and_check_header(pp_csv, pp_columns, 'synth_people.txt-ipums')
     # text columns (output):
     # sp_id,sp_gq_id,sporder,age,sex
-    gq_pp_columns = [17, 9, 18, 19, 13]
+    gq_pp_columns = [17, 22, 18, 19, 13]
     aid.reorder_and_check_header(gq_pp_csv, gq_pp_columns,
                                  'synth_gq_people.txt-ipums')
 
@@ -220,16 +268,16 @@ def _save_hh_as_txt_with_reordering_columns(hh_csv, gq_csv):
      5 HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
     10 latitude,AGE,SEX,RACE,SCHOOL,
     15 INCTOT,SYNTHETIC_PID+made-age,made-race,made-income,
-    20 made-empty
+    20 made-empty,made-hid
     text columns (output):
     sp_id,serialno,stcotrbg,hh_race,hh_income,
     hh_size,hh_age,latitude,longitude """
-    hh_columns = [9, 3, 8, 19, 20, 4, 18, 11, 10]
+    hh_columns = [22, 3, 8, 19, 20, 4, 18, 11, 10]
     aid.reorder_and_check_header(hh_csv, hh_columns,
                                  'synth_households.txt-ipums')
     # text columns (output):
     # sp_id,gq_type,persons,stcotrbg,latitude,longitude
-    gq_columns = [9, 21, 4, 8, 11, 10]
+    gq_columns = [22, 21, 4, 8, 11, 10]
     aid.reorder_and_check_header(gq_csv, gq_columns, 'synth_gq.txt-ipums')
 
 
@@ -248,6 +296,8 @@ def test():
     import filecmp
     prefix2csvs[conf.hh_prefix] = ['spew_sample/fji/household_ra.csv']
     prefix2csvs[conf.pp_prefix] = ['spew_sample/fji/people_ra.csv']
+    global max_hid_len
+    max_hid_len = 4
     translate('fji')
     actual = './populations/spew_1.2.0_fji'
     expected = './expected/spew_1.2.0_fji'

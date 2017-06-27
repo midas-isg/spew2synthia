@@ -54,6 +54,7 @@ def _translate_sc(env_path, sc_ids, code):
     sc_csv = _output_csv_file_path(code, 'schools').replace('.csv', '.txt')
     _save_sc_as_txt(env_path, sc_csv, sc_ids)
 
+
 def _translate_wp(env_path, wp_ids, code):
     wp_csv = _output_csv_file_path(code, 'workplaces')
     _save_wp_as_csv(env_path, wp_csv, wp_ids)

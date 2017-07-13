@@ -1,12 +1,13 @@
+import base64
 from collections import OrderedDict
+import hashlib
 import os
-import sys
 
 import aid
 import conf
 import spew
 max_hid_len = 30
-max_pid_len = 54
+max_pid_len = 1
 prefix2csvs = {}
 age2agep = {
     '100': '99'
@@ -82,7 +83,7 @@ def _save_pp_as_csv(in_file_paths, pp_path, gq_path):
          5 HHTYPE,PERNUM,place_id,SYNTHETIC_HID,longitude,
         10 latitude,AGE,SEX,RACE,SCHOOL,
         15 INCTOT,SYNTHETIC_PID+made-sporder,made-age,made-empty,
-        20 made-race,made-hid """
+        20 made-race,made-hid,made-pid """
     hhtype_column = 5
     hid_column = 8
     age_column = 11
@@ -176,8 +177,11 @@ def _shorten_then_store(id, n, id2shorten_id):
 
 
 def _shorten(id, n):
-    id_len = len(id)
-    return id[id_len - n:]
+    if len(id) <= n:
+        return id
+
+    id_sha1 = hashlib.sha1(str.encode(id))
+    return base64.b64encode(id_sha1.digest()).decode("utf-8")
 
 
 def _to_household_ids(in_file_paths):

@@ -128,19 +128,19 @@ def _save_pp_as_csv(in_file_paths, pp_path, gq_path):
                         _shorten(hid, max_hid_len),
                         _shorten_then_store(pid, max_pid_len, pid2shortened)
                     ])
-                    pids.add(pid)
+                    #pids.add(pid) # minimize memory by assuming no PID looks like shortened one.
                     csv = gq_csv if cells[hhtype_column] == '11' else pp_csv
                     aid.write_and_check_columns(csv, row, columns)
                     hid2cnt[hid] = order
                     income = int('0' + cells[inctot_column])
                     hid2hincome[hid] = hid2hincome.get(hid, 0) + income
     prefix = pp_path.replace('synth_people.csv', '')
-    _save_shortened_hid_mapping(pid2shortened, prefix + 'pid_mapping.csv')
+    _save_shortened_id_mapping(pid2shortened, prefix + 'pid_mapping.csv')
     _check_duplicate_shortened_id(pid2shortened, pids)
     return (hid2cnt.keys() | set()), hid2hincome
 
 
-def _save_shortened_hid_mapping(hid2shortened, file_path):
+def _save_shortened_id_mapping(hid2shortened, file_path):
     if not hid2shortened:
         return
     with open(file_path, 'w') as mapping:
@@ -155,15 +155,18 @@ def _check_duplicate_shortened_id(id2shortened, ids):
     short2ids = {}
     for id, short in id2shortened.items():
         short2ids.setdefault(short, set()).add(id)
-    log_if_not_empty(
+    _log_if_not_empty(
         [short for short, ids in short2ids.items() if len(ids) > 1],
-        'shortened HID duplicates among themselves')
-    log_if_not_empty(
+        'shortened ID duplicates among themselves')
+
+    if not ids:
+        return
+    _log_if_not_empty(
         [short for id, short in id2shortened.items() if short in ids],
-        'shortened HID duplicates with HIDs')
+        'shortened ID duplicates with HIDs')
 
 
-def log_if_not_empty(dup, msg):
+def _log_if_not_empty(dup, msg):
     if dup:
         aid.eprint(msg, dup)
 
@@ -253,7 +256,7 @@ def _save_hh_as_csv(in_file_paths, hid2hincome, hh_path, gq_path):
                             msg = 'Warning: max persons of NP is 20 but got'
                             print(msg, persons, ':', row)
         prefix = hh_path.replace('synth_households.csv', '')
-        _save_shortened_hid_mapping(hid2shorten_hid, prefix + 'hid_mapping.csv')
+        _save_shortened_id_mapping(hid2shorten_hid, prefix + 'hid_mapping.csv')
         _check_duplicate_shortened_id(hid2shorten_hid, hids)
 
 
